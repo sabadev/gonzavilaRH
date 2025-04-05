@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ConfigService } from './config.service';
+import { io, Socket } from 'socket.io-client';
 
 @Injectable({
   providedIn: 'root',
@@ -11,11 +12,27 @@ export class EmployeesService {
   private apiUrl: string;
   private apiDocsUrl: string;
   private apiAttendanceUrl: string;
+  private socket: Socket;
 
   constructor(private http: HttpClient, private configService: ConfigService) {
     this.apiUrl = `${this.configService.apiUrl}/employees`; // URL base para empleados
     this.apiDocsUrl = `${this.configService.apiUrl}/employee-documents`; // URL base para documentos
     this.apiAttendanceUrl = `${this.configService.apiUrl}/attendance`; // URL base para asistencia
+
+    // Conectar al servidor de WebSockets
+    this.socket = io(this.configService.apiUrl);
+  }
+
+  // Escuchar eventos de WebSocket
+  listenToSocketEvents(): Observable<any> {
+    return new Observable((subscriber) => {
+      this.socket.on('documentUpdated', (data) => subscriber.next({ action: 'updated', ...data }));
+      this.socket.on('documentDeleted', (data) => subscriber.next({ action: 'deleted', ...data }));
+      return () => {
+        this.socket.off('documentUpdated');
+        this.socket.off('documentDeleted');
+      };
+    });
   }
 
   // Métodos para empleados
@@ -44,10 +61,11 @@ export class EmployeesService {
     return this.http.put(url, { newPassword });
   }
 
-
   // Métodos para documentos
   getEmployeeDocuments(employeeId: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiDocsUrl}/${employeeId}`).pipe(catchError(this.handleError));
+    return this.http.get<any[]>(`${this.apiDocsUrl}/${employeeId}/documents`).pipe(
+      catchError(this.handleError)
+    );
   }
 
   uploadEmployeeDocument(employeeId: string, document: File, type: string): Observable<any> {
@@ -55,13 +73,14 @@ export class EmployeesService {
     formData.append('document', document);
     formData.append('type', type);
 
-    return this.http.post<any>(`${this.apiDocsUrl}/${employeeId}`, formData).pipe(
+    return this.http.post<any>(`${this.apiDocsUrl}/${employeeId}/documents`, formData).pipe(
       catchError(this.handleError)
     );
   }
 
   deleteEmployeeDocument(employeeId: string, type: string): Observable<any> {
-    return this.http.delete<any>(`${this.apiDocsUrl}/${employeeId}/${type}`).pipe(
+    const encodedType = encodeURIComponent(type);
+    return this.http.delete<any>(`${this.apiDocsUrl}/${employeeId}/documents/${encodedType}`).pipe(
       catchError(this.handleError)
     );
   }

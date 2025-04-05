@@ -1,0 +1,42 @@
+.photo-upload {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+
+  .hidden-input {
+    display: none;
+  }
+
+  .photo-button {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 14px;
+    cursor: pointer;
+
+    &.disabled {
+      background-color: #d6d6d6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.completed-message {
+  text-align: center;
+  margin-top: 20px;
+  color: #28a745;
+  font-weight: bold;
+}

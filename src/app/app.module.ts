@@ -7,6 +7,7 @@ import { ConfigService } from './services/config.service';
 import { IonicModule } from '@ionic/angular';
 import { SharedModule } from './modules/shared/shared.module';
 import { AuthInterceptor } from './interceptors/auth.interceptor'; // Importa el interceptor
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 // Función para inicializar la configuración de la aplicación
 export function initializeApp(configService: ConfigService): () => Promise<void> {
@@ -27,6 +28,7 @@ export function initializeApp(configService: ConfigService): () => Promise<void>
     HttpClientModule,
     IonicModule.forRoot(),
     SharedModule, // SharedModule ya gestiona sus propios componentes
+    BrowserAnimationsModule
   ],
   providers: [
     {

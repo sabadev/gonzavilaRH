@@ -1,0 +1,77 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Reporte por Empleado</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Selección de empleado -->
+  <ion-item>
+    <ion-label position="stacked">Empleado</ion-label>
+    <ion-select
+      [(ngModel)]="selectedEmployee"
+      interface="popover"
+      [compareWith]="compareWith"
+    >
+      <ion-select-option *ngFor="let employee of employees" [value]="employee">
+        {{ employee.name }} {{ employee.last_name }}
+      </ion-select-option>
+    </ion-select>
+  </ion-item>
+
+  <!-- Selección de fechas -->
+  <div class="date-container">
+    <ion-item>
+      <ion-label position="stacked">Inicio</ion-label>
+      <ion-datetime-button datetime="startDatetime"></ion-datetime-button>
+      <ion-datetime
+        id="startDatetime"
+        [(ngModel)]="startDate"
+        name="startDate"
+      ></ion-datetime>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Fin</ion-label>
+      <ion-datetime-button datetime="endDatetime"></ion-datetime-button>
+      <ion-datetime
+        id="endDatetime"
+        [(ngModel)]="endDate"
+        name="endDate"
+      ></ion-datetime>
+    </ion-item>
+  </div>
+
+  <!-- Filtros -->
+  <ion-item>
+    <ion-label>Mostrar Entradas</ion-label>
+    <ion-checkbox slot="start" [(ngModel)]="showEntries"></ion-checkbox>
+  </ion-item>
+
+  <ion-item>
+    <ion-label>Mostrar Salidas</ion-label>
+    <ion-checkbox slot="start" [(ngModel)]="showExits"></ion-checkbox>
+  </ion-item>
+
+  <!-- Botón de Generar Reporte -->
+  <ion-button expand="block" color="primary" (click)="generateReport()">
+    Generar Reporte
+  </ion-button>
+
+  <!-- Resultados del reporte -->
+  <ion-list>
+    <ion-item *ngIf="selectedEmployee">
+      <ion-label>
+        <h2>{{ selectedEmployee.name }} {{ selectedEmployee.last_name }}</h2>
+      </ion-label>
+    </ion-item>
+
+    <ion-item *ngFor="let log of report">
+      <ion-label>
+        <h3>{{ log.log_type | titlecase }}</h3>
+        <p>Fecha: {{ log.log_time | date: 'shortDate' }}</p>
+        <p>Hora: {{ log.log_time | date: 'shortTime' }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+</ion-content>

@@ -2,11 +2,28 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EmployeesService } from 'src/app/services/employees.service';
 import { ToastController, AlertController } from '@ionic/angular';
+import {
+  trigger,
+  transition,
+  style,
+  animate,
+} from '@angular/animations';
 
 @Component({
   selector: 'app-employee-detail',
   templateUrl: './employee-detail.component.html',
   styleUrls: ['./employee-detail.component.scss'],
+  animations: [
+    trigger('fadeInOut', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'scale(0.8)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
+      ]),
+      transition(':leave', [
+        animate('300ms ease-in', style({ opacity: 0, transform: 'scale(0.8)' })),
+      ]),
+    ]),
+  ],
 })
 export class EmployeeDetailComponent implements OnInit {
   employee: any = {};
@@ -64,7 +81,7 @@ export class EmployeeDetailComponent implements OnInit {
       this.employeesService.updateEmployee(this.employee.id, this.employee).subscribe({
         next: () => {
           this.presentToast('Empleado actualizado exitosamente');
-          this.router.navigate(['/employees']);
+          this.router.navigate(['/employees']); // Navegar de regreso a la lista
         },
         error: (err: any) => {
           this.presentToast(err.error?.error || 'Error al actualizar empleado', 'danger');
@@ -76,7 +93,7 @@ export class EmployeeDetailComponent implements OnInit {
           this.presentToast(
             `Empleado creado exitosamente. Usuario: ${response.username}, Contraseña: ${response.password}`
           );
-          this.router.navigate(['/employees']);
+          this.router.navigate(['/employees']); // Navegar de regreso a la lista
         },
         error: (err: any) => {
           this.presentToast(err.error?.error || 'Error al crear empleado', 'danger');

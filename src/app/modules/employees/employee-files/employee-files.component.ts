@@ -37,7 +37,7 @@ export class EmployeeFilesComponent implements OnInit {
   loadEmployeeDetails(): void {
     this.employeesService.getEmployeeById(this.employeeId).subscribe({
       next: (data) => (this.employeeName = `${data.name} ${data.last_name}`),
-      error: (err) => this.presentToast('Error al cargar detalles del empleado', 'danger'),
+      error: () => this.presentToast('Error al cargar detalles del empleado', 'danger'),
     });
   }
 
@@ -48,10 +48,12 @@ export class EmployeeFilesComponent implements OnInit {
           const uploadedDoc = data.find((d: any) => d.type === doc.type);
           if (uploadedDoc) {
             doc.url = uploadedDoc.url;
+          } else {
+            doc.url = null; // Si no hay documento, limpiar la URL
           }
         }
       },
-      error: (err) => this.presentToast('Error al cargar documentos', 'danger'),
+      error: () => this.presentToast('Error al cargar documentos', 'danger'),
     });
   }
 
@@ -63,9 +65,9 @@ export class EmployeeFilesComponent implements OnInit {
       this.employeesService.uploadEmployeeDocument(this.employeeId, file, type).subscribe({
         next: () => {
           this.presentToast(`Documento ${type} subido con éxito.`);
-          this.loadDocuments();
+          this.loadDocuments(); // Recargar los documentos
         },
-        error: (err) => this.presentToast('Error al subir documento', 'danger'),
+        error: () => this.presentToast('Error al subir documento', 'danger'),
       });
     }
   }
@@ -74,14 +76,10 @@ export class EmployeeFilesComponent implements OnInit {
     this.employeesService.deleteEmployeeDocument(this.employeeId, type).subscribe({
       next: () => {
         this.presentToast(`Documento ${type} eliminado con éxito.`);
-        this.loadDocuments();
+        this.loadDocuments(); // Recargar los documentos
       },
-      error: (err) => this.presentToast('Error al eliminar documento', 'danger'),
+      error: () => this.presentToast('Error al eliminar documento', 'danger'),
     });
-  }
-
-  viewDocument(url: string): void {
-    window.open(url, '_blank');
   }
 
   async presentToast(message: string, color: string = 'success') {

@@ -8,16 +8,17 @@ import { IonicModule } from '@ionic/angular';
 import { MenuComponent } from '../shared/menu/menu.component';
 import { SharedModule } from '../shared/shared.module';
 import { AttendanceGeneralReportComponent } from './attendance-general-report/attendance-general-report.component';
+import { EmployeeAttendanceReportComponent } from './employee-attendance-report/employee-attendance-report.component';
 
 
 const routes: Routes = [
   { path: '', component: AttendanceLogComponent },
-  { path: 'report', component: AttendanceGeneralReportComponent }
-
+  { path: 'report', component: AttendanceGeneralReportComponent },
+  { path: 'employee', component: EmployeeAttendanceReportComponent }
 ];
 
 @NgModule({
-  declarations: [AttendanceLogComponent,AttendanceGeneralReportComponent],
+  declarations: [AttendanceLogComponent,AttendanceGeneralReportComponent,EmployeeAttendanceReportComponent],
   imports: [
     CommonModule,
     FormsModule,

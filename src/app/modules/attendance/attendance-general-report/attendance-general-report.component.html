@@ -6,25 +6,50 @@
 
 <ion-content>
   <form (ngSubmit)="getReport()">
-    <ion-item>
-      <ion-label>Inicio</ion-label>
-      <ion-datetime [(ngModel)]="startDate" name="startDate"></ion-datetime>
-    </ion-item>
-    <ion-item>
-      <ion-label>Fin</ion-label>
-      <ion-datetime [(ngModel)]="endDate" name="endDate"></ion-datetime>
-    </ion-item>
-    <ion-button expand="block" type="submit">Generar Reporte</ion-button>
+    <div class="date-container">
+      <!-- Selección de fecha inicial -->
+      <ion-item>
+        <ion-label position="stacked">Inicio (Jueves)</ion-label>
+        <ion-datetime-button datetime="start"></ion-datetime-button>
+        <ion-datetime
+          id="start"
+          [(ngModel)]="startDate"
+          (ionChange)="onStartDateChange()"
+          name="startDate"
+          presentation="date"
+        ></ion-datetime>
+      </ion-item>
+
+      <!-- Fecha final calculada automáticamente -->
+      <ion-item>
+        <ion-label>Fin (Automático):</ion-label>
+        <ion-note>{{ endDate || 'Seleccione una fecha inicial' }}</ion-note>
+      </ion-item>
+    </div>
+
+    <ion-button expand="block" type="submit" class="generate-button" [disabled]="!startDate">Generar Reporte</ion-button>
   </form>
 
-  <ion-list>
-    <ion-item *ngFor="let entry of report">
-      <ion-label>
-        <h3>{{ entry.employee_name }} {{ entry.employee_last_name }}</h3>
-        <p>Fecha: {{ entry.log_date }}</p>
-        <p>Entrada: {{ entry.entry_time }}</p>
-        <p>Salida: {{ entry.exit_time }}</p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+  <!-- Contenedor del reporte con scroll -->
+  <div class="report-container">
+    <ion-grid *ngIf="report.length > 0">
+      <ion-row>
+        <ion-col><strong>Empleado</strong></ion-col>
+        <ion-col *ngFor="let day of getDaysInRange(startDate, endDate)">
+          <strong>{{ day }}</strong>
+        </ion-col>
+        <ion-col><strong>Días Asistidos</strong></ion-col>
+        <ion-col><strong>Días No Asistidos</strong></ion-col>
+      </ion-row>
+      <ion-row *ngFor="let employee of report">
+        <ion-col>{{ employee.full_name }}</ion-col>
+        <ion-col *ngFor="let day of employee.dailyAttendance">
+          <div>Entrada: {{ day.entry_time }}</div>
+          <div>Salida: {{ day.exit_time }}</div>
+        </ion-col>
+        <ion-col>{{ employee.attendedDays }}</ion-col>
+        <ion-col>{{ employee.missedDays }}</ion-col>
+      </ion-row>
+    </ion-grid>
+  </div>
 </ion-content>

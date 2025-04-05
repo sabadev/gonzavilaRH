@@ -1,0 +1,33 @@
+.date-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+ion-item {
+  --inner-padding-top: 0;
+  --inner-padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  margin: 0;
+  flex: 1;
+}
+
+.compact-datetime {
+  --min-height: 30px;
+  --height: 30px;
+  font-size: 14px;
+}
+
+.generate-button {
+  margin-top: 16px;
+}
+.report-container {
+  max-height: 70vh; /* Limita la altura máxima al 70% de la ventana */
+  overflow-y: auto; /* Habilita el scroll vertical */
+  margin-top: 20px; /* Separación superior del formulario */
+  border: 1px solid #ccc; /* Opcional: Añade un borde al contenedor */
+  padding: 10px; /* Espaciado interno */
+  background-color: #fff; /* Fondo blanco para contraste */
+}

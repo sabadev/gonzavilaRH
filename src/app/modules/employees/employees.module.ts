@@ -10,6 +10,8 @@ import { EmployeeFilesComponent } from './employee-files/employee-files.componen
 
 
 
+
+
 @NgModule({
   declarations: [
     EmployeesListComponent, EmployeeDetailComponent,EmployeeFilesComponent
@@ -19,7 +21,9 @@ import { EmployeeFilesComponent } from './employee-files/employee-files.componen
     IonicModule,
     FormsModule,
     EmployeesRoutingModule,
-    SharedModule
+    SharedModule,
+
+
 ]
 })
 export class EmployeesModule { }

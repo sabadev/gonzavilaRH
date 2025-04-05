@@ -7,37 +7,51 @@
     </ion-card-header>
     <ion-card-content>
       <form>
-        <!-- Subida de foto -->
+        <!-- Botón circular para tomar foto -->
         <div class="photo-upload">
-          <ion-label>Toma una foto</ion-label>
-          <input type="file" accept="image/*" capture="environment" (change)="capturePhoto($event)" />
+          <label for="photoInput" class="photo-button" [ngClass]="{ disabled: loading || (hasEntry && hasExit) }">
+            Tomar foto
+          </label>
+          <input
+            #photoInput
+            id="photoInput"
+            type="file"
+            accept="image/*"
+            [attr.capture]="captureSupported ? 'environment' : null"
+            (change)="capturePhoto($event)"
+            class="hidden-input"
+          />
         </div>
 
         <!-- Botones de registrar -->
-        <div class="button-group">
+        <div *ngIf="!hasEntry || !hasExit" class="button-group">
           <ion-button
+            *ngIf="!hasEntry"
             color="primary"
             (click)="registerAttendanceWithPhoto('entry')"
-            [disabled]="loading || hasEntry || !photo"
+            [disabled]="loading || !photo"
           >
             Registrar Entrada
           </ion-button>
           <ion-button
+            *ngIf="hasEntry && !hasExit"
             color="secondary"
             (click)="registerAttendanceWithPhoto('exit')"
-            [disabled]="loading || !hasEntry || hasExit || !photo"
+            [disabled]="loading || !photo"
           >
             Registrar Salida
           </ion-button>
         </div>
+
+        <!-- Mensaje si ya se registró entrada y salida -->
+        <div *ngIf="hasEntry && hasExit" class="completed-message">
+          <ion-text color="success">
+            Horario laboral del día ya registrado.
+          </ion-text>
+        </div>
       </form>
     </ion-card-content>
   </ion-card>
-
-  <!-- Mensaje de retroalimentación -->
-  <ion-text *ngIf="message" color="success">
-    {{ message }}
-  </ion-text>
 
   <!-- Logs recientes -->
   <ion-card>

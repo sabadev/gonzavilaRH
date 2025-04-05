@@ -41,20 +41,23 @@ export class AttendanceService {
     console.log(
       `Llamando a getAttendanceByEmployee con employeeId: ${employeeId}, startDate: ${startDate}, endDate: ${endDate}`
     );
-    return this.http.get(`${this.apiUrl}/employee`, {
-      params: {
-        employeeId: employeeId.toString(),
-        startDate,
-        endDate,
-      },
-    }).pipe(catchError(this.handleError));
+    return this.http
+      .get(`${this.apiUrl}/employee`, {
+        params: {
+          employee_id: employeeId.toString(),
+          start_date: startDate,
+          end_date: endDate,
+        },
+      })
+      .pipe(catchError(this.handleError));
   }
 
   getGeneralReport(startDate: string, endDate: string): Observable<any> {
-    console.log(`Llamando a getGeneralReport con startDate: ${startDate}, endDate: ${endDate}`);
     return this.http.get(`${this.apiUrl}/general`, {
-      params: { startDate, endDate },
-    }).pipe(catchError(this.handleError));
+      params: { start_date: startDate, end_date: endDate }, // Cambiar los nombres si es necesario
+    }).pipe(
+      catchError(this.handleError)
+    );
   }
 
   registerLogWithPhoto(formData: FormData): Observable<any> {
