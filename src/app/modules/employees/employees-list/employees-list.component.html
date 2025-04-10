@@ -1,55 +1,48 @@
-<app-header title="Lista de Empleados"></app-header>
+<app-header [title]="'Lista de Empleados'"></app-header>
 
-<ion-content>
-  <ion-segment [(ngModel)]="viewMode" (ionChange)="onViewModeChange($event)">
-    <ion-segment-button value="list">Lista</ion-segment-button>
-    <ion-segment-button value="grid">Cuadrícula</ion-segment-button>
-  </ion-segment>
+<ion-content [fullscreen]="true">
+  <ion-toolbar class="main-toolbar">
+    <ion-title>Lista de Empleados</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="addEmployee()" color="primary" fill="solid">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Agregar Empleado
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
 
-  <ion-searchbar
-    [(ngModel)]="searchTerm"
-    (ionInput)="filterEmployees($event)"
-    placeholder="Buscar empleados..."
-    animated
-  ></ion-searchbar>
+  <div class="search-container">
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterEmployees($event)"
+      placeholder="Buscar empleados..."
+      animated
+    ></ion-searchbar>
+  </div>
 
-  <div
-    [@viewChangeAnimation]="viewMode"
-    [ngClass]="{ 'grid-view': viewMode === 'grid', 'list-view': viewMode === 'list' }"
-  >
-    <div
-      class="employee-item"
-      *ngFor="let employee of filteredEmployees"
-      [@itemAnimation]
-    >
-      <h3>
-        {{ employee.name }} ({{ employee.username || 'Sin usuario' }}) -
-        <span>{{ employee.position }}</span>
-        <ion-badge
-          [color]="employee.expediente_status === 'Completo' ? 'success' : 'warning'"
-        >
-          {{ employee.expediente_status }}
-        </ion-badge>
-      </h3>
-      <div class="actions">
-        <ion-button color="primary" [routerLink]="['/employees/detail', employee.id]">
-          Editar
-        </ion-button>
-        <ion-button color="danger" (click)="confirmDelete(employee)">
-          Eliminar
-        </ion-button>
-        <ion-button color="tertiary" [routerLink]="['/employees/files', employee.id]">
-          Expediente
-        </ion-button>
-      </div>
-    </div>
+  <div class="list-container">
+    <ion-list>
+      <ion-item
+        *ngFor="let employee of filteredEmployees"
+        class="employee-item"
+      >
+        <ion-label>
+          <h2>{{ employee.name }} {{ employee.last_name }} {{ employee.second_last_name }}</h2>
+          <p>{{ employee.username || 'Sin usuario' }}</p>
+        </ion-label>
+
+        <ion-buttons slot="end">
+          <ion-button color="secondary" (click)="editEmployee(employee.id)" fill="clear">
+            <ion-icon name="create-outline"></ion-icon>
+          </ion-button>
+          <ion-button color="tertiary" (click)="viewFiles(employee.id)" fill="clear">
+            <ion-icon name="document-outline"></ion-icon>
+          </ion-button>
+          <ion-button color="danger" (click)="confirmDelete(employee)" fill="clear">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-item>
+    </ion-list>
   </div>
 </ion-content>
-
-<ion-footer>
-  <ion-toolbar>
-    <ion-button expand="block" color="primary" routerLink="/employees/detail">
-      Crear Nuevo Empleado
-    </ion-button>
-  </ion-toolbar>
-</ion-footer>

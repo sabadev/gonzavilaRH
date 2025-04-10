@@ -2,23 +2,33 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MealsService } from 'src/app/services/meals.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { AlertController } from '@ionic/angular';
-import { ToastController } from '@ionic/angular';
+import { AlertController, ToastController } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { AuthService } from 'src/app/services/auth.service';
+
+interface Meal {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface MealSelection {
+  mealId: number;
+  date: string;
+}
 
 @Component({
   selector: 'app-meals-list',
   templateUrl: './meals-list.component.html',
-  styleUrls: ['./meals-list.component.scss']
+  styleUrls: ['./meals-list.component.scss'],
 })
-export class MealsListComponent implements OnInit {
-  meals: any[] = [];
+export class MealsListComponent implements OnInit, OnDestroy {
+  meals: Meal[] = [];
   selectedDate: string = '';
-  selectedMealId: string | null = null;
-  private subscriptions: Subscription = new Subscription();
-  lastSelectedDate: string | null = null;
-
+  selectedMealId: number | null = null;
+  selectedMealName: string | null = null;
+  alreadySelected: boolean = false;
+  private subscriptions = new Subscription();
 
   constructor(
     private mealsService: MealsService,
@@ -26,205 +36,173 @@ export class MealsListComponent implements OnInit {
     private alertController: AlertController,
     private authService: AuthService,
     private toastController: ToastController
-  ) {
-    // Escucha los eventos de navegación y verifica la ruta
-    this.subscriptions.add(
-      this.router.events
-        .pipe(filter(event => event instanceof NavigationEnd))
-        .subscribe(() => {
-          if (this.router.url.includes('/meals')) {
-            this.loadMealsForToday();
-          }
-        })
-    );
-  }
+  ) {}
 
   ngOnInit(): void {
     if (!this.authService.isAuthenticated()) {
-      console.error('Usuario no autenticado, redirigiendo al login');
       this.router.navigate(['/login']);
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    this.selectedDate = today; // Fecha predeterminada
-    this.loadMealsForDate(today); // Carga inicial}
-
-
+    this.selectedDate = this.getCurrentDate();
+    this.loadMealsForDate(this.selectedDate);
+    this.setupNavigationListener();
   }
 
-  private getEmployeeId(): string | null {
-    console.log('Contenido de localStorage:', localStorage);
-    const employeeId = localStorage.getItem('employeeId');
-
-    if (!employeeId || employeeId.trim() === '') {
-      console.error('El usuario no está autenticado o employeeId es inválido.');
-      this.router.navigate(['/login']); // Redirige al inicio de sesión
-      return null;
-    }
-
-    if (!/^\d+$/.test(employeeId)) { // Verificar que es un número válido
-      console.error('El employeeId en localStorage no es válido.');
-      this.router.navigate(['/login']);
-      return null;
-    }
-
-    return employeeId;
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
-
-
-  loadSelectedMeal(): void {
-    const savedMealId = localStorage.getItem('selectedMealId');
-    if (savedMealId) {
-      this.selectedMealId = savedMealId; // Restaurar la selección previa
-    }
+  private getCurrentDate(): string {
+    return new Date().toISOString().split('T')[0];
   }
 
-  loadMealsForToday(): void {
-    const today = new Date().toISOString().split("T")[0];
-    this.mealsService.getMealsByDate(today).subscribe({
-      next: (meals) => {
-        this.meals = meals;
-      },
-      error: (error) => {
-        console.error("Error al cargar los menús:", error);
-      },
-    });
-  }
-
-  loadMeals(date: string): void {
-    const employeeId = this.getEmployeeId();
-    if (!employeeId) return; // Detener si no hay empleado autenticado
-
-    // Obtener las comidas disponibles
-    this.mealsService.getMealsByDate(date).subscribe({
-      next: (data) => {
-        this.meals = data.filter(meal => this.normalizeDate(meal.date) === date);
-
-        // Obtener la selección actual del backend
-        this.mealsService.getMealSelection(employeeId, date).subscribe(
-          (selection) => {
-            this.selectedMealId = selection.mealId; // Resaltar la selección actual
-          },
-          (error) => {
-            console.error('Error al obtener la selección de comida:', error);
-            this.selectedMealId = null;
-            this.presentToast('No se pudo cargar la selección de comida.', 'warning');
-          }
-        );
-      },
-      error: (error) => {
-        console.error('Error al cargar las comidas:', error);
-        this.presentToast('No se pudieron cargar las comidas disponibles.', 'danger');
-      }
-    });
-  }
-
-  private normalizeDate(date: string): string {
-    return date.split('T')[0]; // Extrae solo `YYYY-MM-DD` de la fecha
-  }
-
-  selectMeal(mealId: number): void {
-    // Convertir mealId a string para mantener consistencia
-    this.selectedMealId = mealId.toString();
-    localStorage.setItem('selectedMealId', this.selectedMealId); // Guardar en localStorage
-  }
-  confirmSelection(): void {
-    if (this.selectedMealId) {
-      const employeeId = this.getEmployeeId();
-      if (!employeeId) return; // Detener si no hay empleado autenticado
-
-      const date = this.selectedDate;
-
-      this.mealsService.saveMealSelection(employeeId, date, this.selectedMealId).subscribe({
-        next: () => {
-          this.presentToast('Selección de comida actualizada exitosamente.');
-        },
-        error: (error) => {
-          console.error('Error al guardar la selección:', error);
-          this.presentToast('Ocurrió un error al guardar la selección.', 'danger');
+  private setupNavigationListener(): void {
+    this.subscriptions.add(
+      this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+        if (this.router.url.includes('/meals')) {
+          this.loadMealsForDate(this.selectedDate);
         }
-      });
-    } else {
-      this.presentToast('Por favor, selecciona una comida antes de confirmar.', 'warning');
-    }
+      })
+    );
   }
 
   onDateChange(event: any): void {
-    const selectedDate = event.detail.value.split('T')[0]; // Formato YYYY-MM-DD
-    console.log('Fecha seleccionada:', selectedDate); // Confirmar que la fecha es correcta
-    this.loadMeals(selectedDate);
+    const newDate = event.detail.value.split('T')[0];
+    if (this.selectedDate !== newDate) {
+      this.selectedDate = newDate;
+      this.loadMealsForDate(newDate);
+    }
   }
 
-  async confirmDelete(id: number): Promise<void> {
-    const alert = await this.alertController.create({
-      header: 'Confirmar Eliminación',
-      message: '¿Estás seguro de que deseas eliminar esta comida?',
-      buttons: [
-        {
-          text: 'Cancelar',
-          role: 'cancel'
-        },
-        {
-          text: 'Eliminar',
-          handler: () => {
-            this.deleteMeal(id);
-          }
-        }
-      ]
+  private loadMealsForDate(date: string): void {
+    const employeeId = this.authService.getEmployeeId();
+    if (!employeeId) return;
+
+    this.mealsService.getMealsByDate(date).subscribe({
+      next: (meals: Meal[]) => {
+        this.meals = meals;
+        this.checkMealSelection(employeeId, date);
+      },
+      error: () => this.presentToast('Error al cargar las comidas.', 'danger'),
     });
+  }
+
+  private checkMealSelection(employeeId: number, date: string): void {
+    this.mealsService.getMealSelection(employeeId.toString(), date).subscribe({
+      next: (selection: MealSelection | null) => {
+        if (selection) {
+          this.selectedMealId = selection.mealId;
+          this.selectedMealName = this.meals.find((meal) => meal.id === this.selectedMealId)?.name || null;
+          this.alreadySelected = true;
+        } else {
+          this.resetSelection();
+        }
+      },
+      error: () => this.presentToast('Error al verificar la selección de comida.', 'danger'),
+    });
+  }
+
+  resetSelection(): void {
+    this.selectedMealId = null;
+    this.selectedMealName = null;
+    this.alreadySelected = false;
+  }
+
+  async confirmSelection(mealId?: number | null): Promise<void> {
+    if (mealId != null) {
+      this.selectedMealId = mealId;
+    }
+
+    const alert = await this.alertController.create({
+      header: 'Confirmar Selección',
+      message: this.alreadySelected
+        ? '¿Quieres cambiar tu selección de comida?'
+        : '¿Estás seguro de que deseas seleccionar esta comida?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Confirmar',
+          handler: () => this.saveMealSelection(),
+        },
+      ],
+    });
+
     await alert.present();
   }
 
-  loadMealsForDate(date: string): void {
-    this.lastSelectedDate = date; // Registra la última fecha seleccionada
-    this.mealsService.getMealsByDate(date).subscribe({
-      next: (meals) => {
-        this.meals = meals; // Actualiza la lista de menús
-      },
-      error: (err) => {
-        console.error('Error al cargar los menús:', err);
-      }
-    });
-  }
+  private saveMealSelection(): void {
+    const employeeId = this.authService.getEmployeeId();
+    if (!employeeId || !this.selectedMealId) return;
 
+    const payload = {
+      employeeId: employeeId.toString(), // Convierte a string
+      date: this.selectedDate,
+      mealId: this.selectedMealId.toString(),
+    };
 
-
-
-  deleteMeal(mealId: number): void {
-    this.mealsService.deleteMeal(mealId).subscribe({
+    this.mealsService.saveMealSelection(payload).subscribe({
       next: () => {
-        console.log(`Menú con ID ${mealId} eliminado.`);
-        // Usa la última fecha seleccionada para recargar
-        const dateToReload = this.selectedDate || this.lastSelectedDate;
-        if (dateToReload) {
-          this.loadMealsForDate(dateToReload);
-        } else {
-          console.warn('No hay una fecha seleccionada o registrada para recargar menús.');
-        }
+        this.presentToast('Selección guardada con éxito.');
+        this.alreadySelected = true;
+        this.selectedMealName = this.meals.find((meal) => meal.id === this.selectedMealId)?.name || null;
       },
-      error: (err) => {
-        console.error('Error al eliminar el menú:', err);
-      }
+      error: () => this.presentToast('Error al guardar la selección.', 'danger'),
     });
   }
 
-
-
-
-  async presentToast(message: string, color: string = 'success'): Promise<void> {
-    const toast = await this.toastController.create({
-      message: message,
-      duration: 3000,
-      color: color,
-      position: 'bottom',
-      buttons: [
+  async presentAddMealAlert(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Añadir Nuevo Menú',
+      inputs: [
         {
-          text: 'Cerrar',
-          role: 'cancel'
-        }
-      ]
+          name: 'mealName',
+          type: 'text',
+          placeholder: 'Nombre del menú',
+        },
+        {
+          name: 'mealDesc',
+          type: 'text',
+          placeholder: 'Descripción del menú',
+        },
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: (data) => {
+            const mealName = data.mealName?.trim();
+            const mealDesc = data.mealDesc?.trim();
+
+            if (!mealName || !mealDesc) {
+              this.presentToast('Debe ingresar nombre y descripción.', 'danger');
+              return false; // No cerrar el alert si los datos están vacíos
+            }
+
+            const newMeal = { name: mealName, description: mealDesc, date: this.selectedDate };
+
+            this.mealsService.addMeal(newMeal).subscribe({
+              next: () => {
+                this.presentToast('Menú añadido con éxito.');
+                this.loadMealsForDate(this.selectedDate);
+              },
+              error: () => this.presentToast('Error al añadir el menú.', 'danger'),
+            });
+
+            return true; // Cerrar el alert si todo salió bien
+          },
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private async presentToast(message: string, color: string = 'success'): Promise<void> {
+    const toast = await this.toastController.create({
+      message,
+      duration: 3000,
+      color,
     });
     toast.present();
   }

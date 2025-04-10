@@ -1,0 +1,19 @@
+<!-- position-list-popover.component.html -->
+<ion-list>
+    <!-- Buscador de posiciones -->
+    <ion-searchbar
+      placeholder="Buscar posición..."
+      (ionInput)="searchPositions($event)"
+    ></ion-searchbar>
+  
+    <!-- Lista de posiciones filtradas -->
+    <ion-item *ngFor="let position of filteredPositions" (click)="selectPosition(position)">
+      {{ position.name }}
+    </ion-item>
+  
+    <!-- Botón para agregar una nueva posición -->
+    <ion-button expand="block" (click)="openAddPositionModal()">
+      <ion-icon slot="start" name="add-outline"></ion-icon>
+      Agregar Nueva Posición
+    </ion-button>
+  </ion-list>

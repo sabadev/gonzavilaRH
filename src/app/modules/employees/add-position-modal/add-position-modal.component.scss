@@ -1,0 +1,17 @@
+ion-content {
+  --background: #f9fafb; // Fondo claro
+}
+
+ion-toolbar {
+  --background: var(--ion-color-primary); // Color primario
+  --color: white; // Texto blanco
+}
+
+ion-item {
+  margin-bottom: 16px;
+}
+
+ion-button {
+  --background: var(--ion-color-primary); // Botón con color primario
+  --color: white; // Texto blanco
+}

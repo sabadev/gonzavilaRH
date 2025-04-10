@@ -1,0 +1,76 @@
+// Variables de colores
+$primary-color: #0078d4;
+$secondary-color: #f4f4f4;
+$text-color: #333333;
+$note-color: #e3f2fd;
+$button-color: #0078d4;
+$button-hover: #005a9e;
+$icon-color: #ffffff;
+
+ion-content {
+  --background: #f9fafb;
+
+  .form-container {
+    padding: 16px;
+
+    ion-list {
+      ion-item {
+        margin-bottom: 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        --background: $secondary-color;
+        --color: $text-color;
+
+        ion-input {
+          --placeholder-color: lighten($text-color, 20%);
+          color: $text-color;
+        }
+      }
+    }
+
+    .info-note {
+      display: block;
+      text-align: center;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: darken($primary-color, 20%);
+      background-color: $note-color;
+      border-radius: 6px;
+      padding: 8px;
+    }
+
+    .save-button {
+      margin-top: 16px;
+      background-color: $button-color;
+      color: $icon-color;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 8px;
+
+      &:hover {
+        background-color: $button-hover;
+      }
+
+      ion-icon {
+        font-size: 1.2rem;
+      }
+    }
+  }
+
+  ion-fab-button.fab-button {
+    background-color: #4caf50; // Verde más moderno
+    color: #ffffff; // Blanco para el ícono
+    border-radius: 50%; // Asegura el círculo perfecto
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); // Sombra suave para dar un efecto flotante
+    width: 56px; // Tamaño más pequeño para minimalismo
+    height: 56px;
+
+    ion-icon {
+      font-size: 1.5rem; // Tamaño del ícono ajustado
+    }
+
+    &:hover {
+      background-color: #388e3c; // Un tono más oscuro al pasar el cursor
+    }
+  }
+}

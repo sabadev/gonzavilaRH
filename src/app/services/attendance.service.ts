@@ -60,6 +60,14 @@ export class AttendanceService {
     );
   }
 
+  getGeneralReportInOut(startDate: string, endDate: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/generalinout`, {
+      params: { start_date: startDate, end_date: endDate }, // Cambiar los nombres si es necesario
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   registerLogWithPhoto(formData: FormData): Observable<any> {
     console.log('Llamando a registerLogWithPhoto con FormData:', {
       employee_id: formData.get('employee_id'),

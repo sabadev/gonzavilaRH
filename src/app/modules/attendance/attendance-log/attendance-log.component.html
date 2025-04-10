@@ -1,53 +1,51 @@
 <app-header title="Asistencia"></app-header>
 
 <ion-content>
+  <!-- Toast para mensajes -->
+  <ion-toast></ion-toast>
+
   <ion-card>
     <ion-card-header>
       <ion-card-title>Registrar Entrada/Salida</ion-card-title>
     </ion-card-header>
     <ion-card-content>
       <form>
-        <!-- Botón circular para tomar foto -->
         <div class="photo-upload">
+          <!-- Botón de ayuda -->
+
+
+          <!-- Área de captura de foto -->
           <label for="photoInput" class="photo-button" [ngClass]="{ disabled: loading || (hasEntry && hasExit) }">
-            Tomar foto
+            <ion-icon name="camera" class="camera-icon"></ion-icon>
+            <span>Toma tu foto</span>
           </label>
-          <input
-            #photoInput
-            id="photoInput"
-            type="file"
-            accept="image/*"
-            [attr.capture]="captureSupported ? 'environment' : null"
-            (change)="capturePhoto($event)"
-            class="hidden-input"
-          />
+          <input #photoInput id="photoInput" type="file" accept="image/*"
+            [attr.capture]="captureSupported ? 'environment' : null" (change)="capturePhoto($event)"
+            class="hidden-input" />
+
+          <!-- Previsualización y carga -->
+          <div class="preview-container" *ngIf="photoPreviewUrl || loading">
+            <div class="loading-overlay" *ngIf="loading">
+              <ion-spinner name="crescent"></ion-spinner>
+              <p>Procesando imagen...</p>
+            </div>
+            <img [src]="photoPreviewUrl" alt="Foto capturada" class="photo-preview" *ngIf="photoPreviewUrl" />
+          </div>
         </div>
 
-        <!-- Botones de registrar -->
-        <div *ngIf="!hasEntry || !hasExit" class="button-group">
-          <ion-button
-            *ngIf="!hasEntry"
-            color="primary"
-            (click)="registerAttendanceWithPhoto('entry')"
-            [disabled]="loading || !photo"
-          >
-            Registrar Entrada
-          </ion-button>
-          <ion-button
-            *ngIf="hasEntry && !hasExit"
-            color="secondary"
-            (click)="registerAttendanceWithPhoto('exit')"
-            [disabled]="loading || !photo"
-          >
-            Registrar Salida
-          </ion-button>
-        </div>
+        <!-- Botones de registro -->
+        <ion-button (click)="registerAttendanceWithPhoto('entry')">
+          Registrar Entrada
+        </ion-button>
+        
+        <ion-button (click)="registerAttendanceWithPhoto('exit')">
+          Registrar Salida
+        </ion-button>
 
-        <!-- Mensaje si ya se registró entrada y salida -->
+        <!-- Mensaje de día completo -->
         <div *ngIf="hasEntry && hasExit" class="completed-message">
-          <ion-text color="success">
-            Horario laboral del día ya registrado.
-          </ion-text>
+          <ion-icon name="checkmark-circle" color="success"></ion-icon>
+          <ion-text color="success">Jornada completa registrada</ion-text>
         </div>
       </form>
     </ion-card-content>
@@ -56,22 +54,36 @@
   <!-- Logs recientes -->
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Logs Recientes</ion-card-title>
+      <div class="logs-header">
+        <ion-card-title>Registros Recientes</ion-card-title>
+        <ion-button fill="clear" (click)="loadRecentLogs()" [disabled]="loading">
+          <ion-icon name="refresh" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
     </ion-card-header>
     <ion-card-content>
-      <ion-list>
-        <ion-item *ngFor="let log of recentLogs">
+      <ion-list lines="full">
+        <ion-item *ngFor="let log of recentLogs" class="log-item">
+          <ion-icon slot="start" [name]="log.log_type === 'entry' ? 'arrow-forward-circle' : 'arrow-back-circle'"
+            [color]="log.log_type === 'entry' ? 'primary' : 'secondary'"></ion-icon>
           <ion-label>
-            {{ log.log_type | titlecase }} -
-            {{ log.log_time | date: 'short' }}
+            <h2>{{ log.log_type | titlecase }}</h2>
+            <p>{{ log.log_time | date: 'medium' }}</p>
           </ion-label>
+          <ion-note slot="end">{{ log.log_time | date: 'shortTime' }}</ion-note>
+        </ion-item>
+        <ion-item *ngIf="recentLogs.length === 0">
+          <ion-label class="no-logs">No hay registros recientes</ion-label>
         </ion-item>
       </ion-list>
     </ion-card-content>
   </ion-card>
 
-  <!-- Botón de cerrar sesión -->
-  <ion-button expand="block" color="danger" (click)="logout()">
-    Cerrar Sesión
-  </ion-button>
+  <!-- Botón de cierre de sesión -->
+  <div class="logout-container">
+    <ion-button expand="block" color="danger" (click)="logout()" class="logout-button">
+      <ion-icon name="log-out" slot="start"></ion-icon>
+      Cerrar Sesión
+    </ion-button>
+  </div>
 </ion-content>

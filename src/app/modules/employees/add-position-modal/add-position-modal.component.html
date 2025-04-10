@@ -1,0 +1,22 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Agregar Nueva Posición</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">Cerrar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form (ngSubmit)="savePosition()">
+    <ion-item>
+      <ion-label position="floating">Nombre de la Posición</ion-label>
+      <ion-input [(ngModel)]="newPosition.name" name="name" required></ion-input>
+    </ion-item>
+
+    <ion-button expand="block" type="submit">
+      <ion-icon slot="start" name="save-outline"></ion-icon>
+      Guardar
+    </ion-button>
+  </form>
+</ion-content>

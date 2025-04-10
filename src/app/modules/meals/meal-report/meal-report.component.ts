@@ -27,20 +27,7 @@ export class MealReportComponent {
   }
 
   generateRangeReport() {
-    if (this.startDate && this.endDate) {
-      this.mealsService.getMealReport(this.startDate, this.endDate).subscribe(
-        (report: any[]) => {
-          this.report = report;
-          console.log('Reporte por rango generado:', this.report);
-        },
-        (error: any) => {
-          console.error('Error al generar el reporte por rango:', error);
-          this.presentToast('Error al generar el reporte por rango', 'danger');
-        }
-      );
-    } else {
-      this.presentToast('Por favor selecciona un rango de fechas', 'danger');
-    }
+
   }
 
 

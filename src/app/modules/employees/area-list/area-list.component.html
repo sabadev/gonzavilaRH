@@ -1,0 +1,9 @@
+<!-- employee-detail.component.html -->
+<div *ngIf="field.name === 'area_id'; else defaultField">
+    <ion-item (click)="openAreaPopover($event)">
+      <ion-label>{{ field.label }}</ion-label>
+      <ion-text slot="end">
+        {{ employee.area_name || 'Selecciona un área' }}
+      </ion-text>
+    </ion-item>
+  </div>

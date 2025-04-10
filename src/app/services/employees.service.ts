@@ -44,12 +44,25 @@ export class EmployeesService {
     return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(catchError(this.handleError));
   }
 
+
+  // Crear un empleado
   createEmployee(employee: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, employee).pipe(catchError(this.handleError));
+    return this.http.post<any>(this.apiUrl, employee).pipe(
+      catchError((error) => {
+        console.error('Error al crear empleado:', error);
+        return throwError(() => new Error('Error al crear empleado.'));
+      })
+    );
   }
 
+  // Actualizar un empleado
   updateEmployee(id: string, employee: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, employee).pipe(catchError(this.handleError));
+    return this.http.put<any>(`${this.apiUrl}/${id}`, employee).pipe(
+      catchError((error) => {
+        console.error('Error al actualizar empleado:', error);
+        return throwError(() => new Error('Error al actualizar empleado.'));
+      })
+    );
   }
 
   deleteEmployee(id: string): Observable<any> {
@@ -58,7 +71,7 @@ export class EmployeesService {
 
   updatePassword(id: number, newPassword: string): Observable<any> {
     const url = `${this.apiUrl}/update-password/${id}`;
-    return this.http.put(url, { newPassword });
+    return this.http.put(url, { newPassword }).pipe(catchError(this.handleError));
   }
 
   // Métodos para documentos
@@ -102,14 +115,15 @@ export class EmployeesService {
     );
   }
 
-  private handleError(error: HttpErrorResponse) {
-    console.error('Error en el servidor:', error);
-    return throwError(() => new Error(error.error?.error || 'Error en el servidor, inténtalo más tarde.'));
-  }
-
+  // Métodos adicionales para ajustes
   saveAdjustments(employeeId: string, adjustments: any[]): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/${employeeId}/adjustments`, adjustments).pipe(
       catchError(this.handleError)
     );
+  }
+
+  private handleError(error: HttpErrorResponse) {
+    console.error('Error en el servidor:', error);
+    return throwError(() => new Error(error.error?.error || 'Error en el servidor, inténtalo más tarde.'));
   }
 }

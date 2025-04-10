@@ -1,0 +1,53 @@
+.menu-header {
+    --background: #ffffff; /* Color de fondo del encabezado */
+    --color: #2c3e50; /* Color del texto */
+  }
+  
+  .menu-title {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  
+  .logo {
+    width: 60px;
+   
+    margin-right: 10px;
+  }
+  
+  .menu-content {
+    --background: #34495e; /* Color de fondo del contenido */
+  }
+  
+  .menu-list {
+    background: transparent;
+  }
+  
+  .menu-item {
+    --background: transparent;
+    --color: #ffffff;
+    --padding-start: 20px;
+    --padding-end: 20px;
+    --min-height: 50px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .menu-item:hover {
+    --background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .menu-icon {
+    color: #ffffff;
+    font-size: 1.2rem;
+  }
+  
+  .menu-label {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  .menu-footer {
+    background: #2c3e50; /* Color de fondo del pie de página */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }

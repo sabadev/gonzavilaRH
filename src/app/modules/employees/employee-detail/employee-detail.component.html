@@ -1,30 +1,66 @@
-<app-header [title]="employee?.id ? 'Editar Empleado' : 'Crear Empleado'"></app-header>
-
 <ion-content>
-  <form (ngSubmit)="saveEmployee()">
-    <ion-item *ngFor="let field of fields">
-      <ion-input
-        [label]="field.label"
-        labelPlacement="floating"
-        [(ngModel)]="employee[field.name]"
-        [name]="field.name"
-        [type]="field.type || 'text'"
-        [required]="field.required"
-      ></ion-input>
-    </ion-item>
+  <form (ngSubmit)="saveEmployee()" class="form-container">
+    <ion-list>
+      <ion-item *ngFor="let field of fields">
+        <!-- Campo de posición con ion-select -->
+        <div *ngIf="field.name === 'position_id'; else defaultField">
+          <ion-item (click)="openPositionPopover($event)">
+            <ion-label>{{ field.label }}</ion-label>
+            <ion-text slot="end">
+              {{ employee.position_name || 'Selecciona una posición' }}
+            </ion-text>
+          </ion-item>
+        </div>
 
-    <ion-note color="primary" class="ion-padding">
+        <!-- Campo de área (solo lectura) -->
+        <div *ngIf="field.name === 'area_name'">
+          <ion-item>
+            <ion-label>{{ field.label }}</ion-label>
+            <ion-text slot="end">
+              {{ employee.area || 'Sin área' }}
+            </ion-text>
+          </ion-item>
+        </div>
+
+        <!-- Campos normales -->
+        <ng-template #defaultField>
+          <ion-input
+            *ngIf="field.type !== 'checkbox'; else checkboxField"
+            [label]="field.label"
+            labelPlacement="floating"
+            [(ngModel)]="employee[field.name]"
+            [name]="field.name"
+            [type]="field.type || 'text'"
+            [required]="field.required"
+            [readonly]="field.readonly"
+          ></ion-input>
+
+          <ng-template #checkboxField>
+            <ion-checkbox
+              slot="start"
+              [(ngModel)]="employee[field.name]"
+              [name]="field.name"
+            ></ion-checkbox>
+            <ion-label>{{ field.label }}</ion-label>
+          </ng-template>
+        </ng-template>
+      </ion-item>
+    </ion-list>
+
+    <ion-note class="info-note">
       El usuario y la contraseña se generan automáticamente al crear un empleado.
     </ion-note>
 
-    <ion-button expand="block" type="submit">
+    <!-- Botón guardar -->
+    <ion-button expand="block" type="submit" class="save-button">
+      <ion-icon slot="start" [name]="employee.id ? 'save-outline' : 'add-outline'"></ion-icon>
       {{ employee.id ? 'Actualizar' : 'Crear' }}
     </ion-button>
   </form>
 
   <!-- Botón flotante para actualizar contraseña -->
   <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button color="primary" (click)="updatePassword()">
+    <ion-fab-button class="fab-button" (click)="updatePassword()">
       <ion-icon name="key-outline"></ion-icon>
     </ion-fab-button>
   </ion-fab>
