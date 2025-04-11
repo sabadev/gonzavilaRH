@@ -1,129 +1,166 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
-import { io, Socket } from 'socket.io-client';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class EmployeesService {
   private apiUrl: string;
-  private apiDocsUrl: string;
-  private apiAttendanceUrl: string;
-  private socket: Socket;
+  private employeesSubject = new BehaviorSubject<any[]>([]);
+  employees$ = this.employeesSubject.asObservable();
+  private refreshSubject = new BehaviorSubject<void>(undefined);
+  refresh$ = this.refreshSubject.asObservable();
 
-  constructor(private http: HttpClient, private configService: ConfigService) {
-    this.apiUrl = `${this.configService.apiUrl}/employees`; // URL base para empleados
-    this.apiDocsUrl = `${this.configService.apiUrl}/employee-documents`; // URL base para documentos
-    this.apiAttendanceUrl = `${this.configService.apiUrl}/attendance`; // URL base para asistencia
-
-    // Conectar al servidor de WebSockets
-    this.socket = io(this.configService.apiUrl);
+  constructor(
+    private http: HttpClient,
+    private configService: ConfigService,
+    private authService: AuthService
+  ) {
+    this.apiUrl = `${this.configService.apiUrl}/employees`;
+    this.loadInitialData();
   }
 
-  // Escuchar eventos de WebSocket
-  listenToSocketEvents(): Observable<any> {
-    return new Observable((subscriber) => {
-      this.socket.on('documentUpdated', (data) => subscriber.next({ action: 'updated', ...data }));
-      this.socket.on('documentDeleted', (data) => subscriber.next({ action: 'deleted', ...data }));
-      return () => {
-        this.socket.off('documentUpdated');
-        this.socket.off('documentDeleted');
-      };
+  private getAuthHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
     });
   }
 
-  // Métodos para empleados
+  // Métodos básicos de empleados
+  private loadInitialData(): void {
+    this.getEmployees().subscribe();
+  }
+
   getEmployees(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrl).pipe(catchError(this.handleError));
-  }
-
-  getEmployeeById(id: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(catchError(this.handleError));
-  }
-
-
-  // Crear un empleado
-  createEmployee(employee: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, employee).pipe(
-      catchError((error) => {
-        console.error('Error al crear empleado:', error);
-        return throwError(() => new Error('Error al crear empleado.'));
+    return this.http.get<any[]>(this.apiUrl, { headers: this.getAuthHeaders() }).pipe(
+      tap(employees => this.employeesSubject.next(employees)),
+      catchError(error => {
+        console.error('Error loading employees:', error);
+        return throwError(error);
       })
     );
   }
 
-  // Actualizar un empleado
-  updateEmployee(id: string, employee: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, employee).pipe(
-      catchError((error) => {
-        console.error('Error al actualizar empleado:', error);
-        return throwError(() => new Error('Error al actualizar empleado.'));
+  getEmployeeById(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`, { headers: this.getAuthHeaders() }).pipe(
+      catchError(error => {
+        console.error(`Error getting employee ${id}:`, error);
+        return throwError(error);
+      })
+    );
+  }
+
+  createEmployee(employeeData: any): Observable<any> {
+    return this.http.post(this.apiUrl, employeeData, { headers: this.getAuthHeaders() }).pipe(
+      tap(newEmployee => {
+        const currentEmployees = this.employeesSubject.value;
+        this.employeesSubject.next([...currentEmployees, newEmployee]);
+        this.refreshSubject.next();
+      }),
+      catchError(error => {
+        console.error('Error creating employee:', error);
+        return throwError(error);
+      })
+    );
+  }
+
+  updateEmployee(id: string, employeeData: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, employeeData, { headers: this.getAuthHeaders() }).pipe(
+      tap(updatedEmployee => {
+        const currentEmployees = this.employeesSubject.value;
+        const index = currentEmployees.findIndex(e => e.id === id);
+        if (index !== -1) {
+          currentEmployees[index] = updatedEmployee;
+          this.employeesSubject.next([...currentEmployees]);
+          this.refreshSubject.next();
+        }
+      }),
+      catchError(error => {
+        console.error(`Error updating employee ${id}:`, error);
+        return throwError(error);
       })
     );
   }
 
   deleteEmployee(id: string): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`).pipe(catchError(this.handleError));
-  }
-
-  updatePassword(id: number, newPassword: string): Observable<any> {
-    const url = `${this.apiUrl}/update-password/${id}`;
-    return this.http.put(url, { newPassword }).pipe(catchError(this.handleError));
-  }
-
-  // Métodos para documentos
-  getEmployeeDocuments(employeeId: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiDocsUrl}/${employeeId}/documents`).pipe(
-      catchError(this.handleError)
+    return this.http.delete(`${this.apiUrl}/${id}`, { headers: this.getAuthHeaders() }).pipe(
+      tap(() => {
+        const currentEmployees = this.employeesSubject.value;
+        this.employeesSubject.next(currentEmployees.filter(e => e.id !== id));
+        this.refreshSubject.next();
+      }),
+      catchError(error => {
+        console.error(`Error deleting employee ${id}:`, error);
+        return throwError(error);
+      })
     );
   }
 
-  uploadEmployeeDocument(employeeId: string, document: File, type: string): Observable<any> {
+  // Métodos para documentos de empleados
+  getEmployeeDocuments(employeeId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/${employeeId}/documents`, { headers: this.getAuthHeaders() }).pipe(
+      catchError(error => {
+        console.error(`Error getting documents for employee ${employeeId}:`, error);
+        return throwError(error);
+      })
+    );
+  }
+
+  uploadEmployeeDocument(employeeId: string, file: File, type: string): Observable<any> {
     const formData = new FormData();
-    formData.append('document', document);
+    formData.append('file', file);
     formData.append('type', type);
 
-    return this.http.post<any>(`${this.apiDocsUrl}/${employeeId}/documents`, formData).pipe(
-      catchError(this.handleError)
+    return this.http.post(`${this.apiUrl}/${employeeId}/documents`, formData, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error(`Error uploading document for employee ${employeeId}:`, error);
+        return throwError(error);
+      })
     );
   }
 
-  deleteEmployeeDocument(employeeId: string, type: string): Observable<any> {
-    const encodedType = encodeURIComponent(type);
-    return this.http.delete<any>(`${this.apiDocsUrl}/${employeeId}/documents/${encodedType}`).pipe(
-      catchError(this.handleError)
+  deleteEmployeeDocument(employeeId: string, documentId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${employeeId}/documents/${documentId}`, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error(`Error deleting document for employee ${employeeId}:`, error);
+        return throwError(error);
+      })
     );
   }
 
-  // Métodos para asistencia
-  uploadAttendancePhoto(employeeId: number, photo: File, logType: string): Observable<any> {
-    const formData = new FormData();
-    formData.append('photo', photo);
-    formData.append('logType', logType);
-
-    return this.http.post<any>(`${this.apiAttendanceUrl}/${employeeId}/photo`, formData).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  getAttendancePhotos(employeeId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiAttendanceUrl}/${employeeId}/photos`).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // Métodos adicionales para ajustes
+  // Métodos para ajustes de nómina
   saveAdjustments(employeeId: string, adjustments: any[]): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/${employeeId}/adjustments`, adjustments).pipe(
-      catchError(this.handleError)
+    return this.http.post(`${this.apiUrl}/${employeeId}/adjustments`, adjustments, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error(`Error saving adjustments for employee ${employeeId}:`, error);
+        return throwError(error);
+      })
     );
   }
 
-  private handleError(error: HttpErrorResponse) {
-    console.error('Error en el servidor:', error);
-    return throwError(() => new Error(error.error?.error || 'Error en el servidor, inténtalo más tarde.'));
+  getEmployeeAdjustments(employeeId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/${employeeId}/adjustments`, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error(`Error getting adjustments for employee ${employeeId}:`, error);
+        return throwError(error);
+      })
+    );
+  }
+
+  // Método para refrescar datos
+  refreshEmployees(): void {
+    this.getEmployees().subscribe();
   }
 }

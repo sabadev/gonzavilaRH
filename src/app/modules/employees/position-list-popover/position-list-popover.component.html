@@ -1,19 +1,97 @@
-<!-- position-list-popover.component.html -->
-<ion-list>
-    <!-- Buscador de posiciones -->
-    <ion-searchbar
-      placeholder="Buscar posición..."
-      (ionInput)="searchPositions($event)"
-    ></ion-searchbar>
-  
-    <!-- Lista de posiciones filtradas -->
-    <ion-item *ngFor="let position of filteredPositions" (click)="selectPosition(position)">
-      {{ position.name }}
-    </ion-item>
-  
-    <!-- Botón para agregar una nueva posición -->
-    <ion-button expand="block" (click)="openAddPositionModal()">
-      <ion-icon slot="start" name="add-outline"></ion-icon>
-      Agregar Nueva Posición
+<ion-list lines="none">
+  <!-- Search bar -->
+  <ion-searchbar
+    placeholder="Buscar posición..."
+    [(ngModel)]="searchTerm"
+    (ionInput)="searchPositions($event)"
+    animated
+    clear-icon="close-circle"
+    class="search-bar"
+  ></ion-searchbar>
+
+  <!-- Loading state -->
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <span>Cargando posiciones...</span>
+  </div>
+
+  <!-- Error state -->
+  <div class="error-state" *ngIf="errorLoading && !isLoading">
+    <ion-icon name="warning-outline"></ion-icon>
+    <span>Error al cargar posiciones</span>
+    <ion-button fill="clear" (click)="retryLoadPositions()">
+      Reintentar
     </ion-button>
-  </ion-list>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading && !errorLoading && filteredPositions.length === 0">
+    <ion-icon name="briefcase-outline"></ion-icon>
+    <span>No se encontraron posiciones</span>
+    <span *ngIf="searchTerm">para "{{searchTerm}}"</span>
+  </div>
+    <!-- Action buttons -->
+    <div class="action-buttons">
+      <ion-button
+        expand="block"
+        (click)="openAddPositionModal()"
+        class="add-button"
+      >
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Agregar
+      </ion-button>
+
+      <ion-button
+        *ngIf="selectedPosition"
+        expand="block"
+        color="warning"
+        (click)="openEditPositionModal()"
+        class="edit-button"
+      >
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        Editar
+      </ion-button>
+
+      <ion-button
+        *ngIf="selectedPosition"
+        expand="block"
+        color="danger"
+        (click)="confirmDelete()"
+        class="delete-button"
+      >
+        <ion-icon slot="start" name="trash-outline"></ion-icon>
+        Eliminar
+      </ion-button>
+
+      <ion-button
+        *ngIf="selectedPosition"
+        expand="block"
+        color="primary"
+        (click)="confirmSelection()"
+        class="confirm-button"
+      >
+        <ion-icon slot="start" name="checkmark-outline"></ion-icon>
+        Seleccionar
+      </ion-button>
+    </div>
+
+  <!-- Positions list -->
+  <ion-item
+    *ngFor="let position of filteredPositions"
+    (click)="selectPosition(position)"
+    [class.selected]="selectedPosition?.id === position.id"
+    button
+    detail
+    class="position-item"
+  >
+    <ion-label>
+      <h3>{{ position.name }}</h3>
+      <p *ngIf="position.area_id" class="area-name">
+        <ion-icon name="business-outline"></ion-icon>
+        {{ getAreaName(position.area_id) }}
+      </p>
+    </ion-label>
+  </ion-item>
+
+
+</ion-list>

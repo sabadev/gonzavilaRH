@@ -1,7 +1,7 @@
-// components/area-list-popover/area-list-popover.component.ts
 import { Component, OnInit } from '@angular/core';
 import { PopoverController } from '@ionic/angular';
 import { AreaService } from 'src/app/services/area.service';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-area-list-popover',
@@ -9,8 +9,10 @@ import { AreaService } from 'src/app/services/area.service';
   styleUrls: ['./area-list-popover.component.scss'],
 })
 export class AreaListPopoverComponent implements OnInit {
-  areas: any[] = []; // Lista completa de áreas
-  filteredAreas: any[] = []; // Lista filtrada de áreas
+  areas: any[] = [];
+  isLoading = true;
+  errorLoading = false;
+  searchTerm = '';
 
   constructor(
     private popoverController: PopoverController,
@@ -18,34 +20,45 @@ export class AreaListPopoverComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadAreas(); // Cargar las áreas al iniciar
+    this.loadAreas();
   }
 
-  // Cargar todas las áreas
   loadAreas(): void {
-    this.areaService.getAreas().subscribe({
-      next: (areas: any[]) => {
-        this.areas = areas;
-        this.filteredAreas = areas; // Inicialmente, mostrar todas las áreas
-      },
-      error: (err: any) => {
-        console.error('Error al cargar áreas:', err);
-      },
-    });
+    this.isLoading = true;
+    this.errorLoading = false;
+
+    this.areaService.getAreas()
+      .pipe(
+        finalize(() => this.isLoading = false)
+      )
+      .subscribe({
+        next: (areas: any[]) => {
+          this.areas = areas;
+        },
+        error: (err) => {
+          console.error('Error loading areas:', err);
+          this.errorLoading = true;
+        }
+      });
   }
 
-  // Filtrar áreas según el término de búsqueda
   searchAreas(event: any): void {
-    const searchTerm = event.target.value.toLowerCase();
-    this.filteredAreas = this.areas.filter((area) =>
-      area.name.toLowerCase().includes(searchTerm)
+    this.searchTerm = event.target.value.toLowerCase();
+  }
+
+  get filteredAreas(): any[] {
+    return this.areas.filter(area =>
+      area.name.toLowerCase().includes(this.searchTerm)
     );
   }
 
-  // Seleccionar un área
   selectArea(area: any): void {
     this.popoverController.dismiss({
-      areaSelected: area, // Devuelve el área seleccionada
+      areaSelected: area,
     });
+  }
+
+  dismiss(): void {
+    this.popoverController.dismiss();
   }
 }

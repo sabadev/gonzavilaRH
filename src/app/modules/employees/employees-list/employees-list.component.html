@@ -1,48 +1,60 @@
-<app-header [title]="'Lista de Empleados'"></app-header>
-
-<ion-content [fullscreen]="true">
-  <ion-toolbar class="main-toolbar">
+<ion-header>
+  <ion-toolbar>
     <ion-title>Lista de Empleados</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="addEmployee()" color="primary" fill="solid">
-        <ion-icon slot="start" name="add-outline"></ion-icon>
-        Agregar Empleado
+      <ion-button (click)="createEmployee()">
+        <ion-icon slot="icon-only" name="add-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
-
-  <div class="search-container">
+  <ion-toolbar>
     <ion-searchbar
       [(ngModel)]="searchTerm"
-      (ionInput)="filterEmployees($event)"
-      placeholder="Buscar empleados..."
-      animated
-    ></ion-searchbar>
+      (ionChange)="filterEmployees()"
+      placeholder="Buscar empleados...">
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="loading-spinner" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Cargando empleados...</p>
   </div>
 
-  <div class="list-container">
-    <ion-list>
-      <ion-item
-        *ngFor="let employee of filteredEmployees"
-        class="employee-item"
-      >
-        <ion-label>
-          <h2>{{ employee.name }} {{ employee.last_name }} {{ employee.second_last_name }}</h2>
-          <p>{{ employee.username || 'Sin usuario' }}</p>
-        </ion-label>
+  <ion-list *ngIf="!isLoading">
+    <ion-item *ngFor="let employee of filteredEmployees" detail>
+      <ion-avatar slot="start">
+        <ion-icon name="person-outline"></ion-icon>
+      </ion-avatar>
 
-        <ion-buttons slot="end">
-          <ion-button color="secondary" (click)="editEmployee(employee.id)" fill="clear">
-            <ion-icon name="create-outline"></ion-icon>
-          </ion-button>
-          <ion-button color="tertiary" (click)="viewFiles(employee.id)" fill="clear">
-            <ion-icon name="document-outline"></ion-icon>
-          </ion-button>
-          <ion-button color="danger" (click)="confirmDelete(employee)" fill="clear">
-            <ion-icon name="trash-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-item>
-    </ion-list>
-  </div>
+      <ion-label>
+        <h2>{{ employee.name }} {{ employee.last_name }}</h2>
+        <p>{{ employee.position || 'Sin posición asignada' }}</p>
+        <p>{{ employee.area || 'Sin área asignada' }}</p>
+      </ion-label>
+
+      <ion-badge slot="end" [color]="employee.activo ? 'success' : 'danger'">
+        {{ employee.activo ? 'Activo' : 'Inactivo' }}
+      </ion-badge>
+
+      <ion-buttons slot="end">
+        <ion-button (click)="editEmployee(employee.id)">
+          <ion-icon name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button (click)="confirmDelete(employee)" color="danger">
+          <ion-icon name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-item>
+
+    <ion-item *ngIf="filteredEmployees.length === 0">
+      <ion-label class="empty-state" text-center>
+        <ion-icon name="people-outline"></ion-icon>
+        <h2>No se encontraron empleados</h2>
+        <p *ngIf="searchTerm">Intenta con otro término de búsqueda</p>
+        <p *ngIf="!searchTerm">Presiona el botón "+" para agregar uno nuevo</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
 </ion-content>

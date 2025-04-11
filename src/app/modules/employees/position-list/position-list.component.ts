@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ModalController } from '@ionic/angular';
+import { ModalController, AlertController } from '@ionic/angular';
 import { PositionService } from 'src/app/services/positions.service';
 import { AddPositionModalComponent } from '../add-position-modal/add-position-modal.component';
 
@@ -9,65 +9,109 @@ import { AddPositionModalComponent } from '../add-position-modal/add-position-mo
   styleUrls: ['./position-list.component.scss'],
 })
 export class PositionListComponent implements OnInit {
-  positions: any[] = []; // Lista completa de posiciones
-  filteredPositions: any[] = []; // Lista filtrada de posiciones
-  searchTerm: string = ''; // Término de búsqueda
-  selectedPositionName: string = ''; // Nombre de la posición seleccionada
-  isDropdownOpen: boolean = false; // Estado del dropdown (abierto/cerrado)
+  positions: any[] = [];
+  filteredPositions: any[] = [];
+  searchTerm: string = '';
+  selectedPositionName: string = '';
+  isDropdownOpen: boolean = false;
+  selectedPosition: any = null;
 
   constructor(
     private positionService: PositionService,
-    private modalController: ModalController
+    private modalController: ModalController,
+    private alertController: AlertController
   ) {}
 
   ngOnInit(): void {
-    this.loadPositions(); // Cargar las posiciones al iniciar el componente
+    this.loadPositions();
   }
 
-  // Cargar todas las posiciones
   loadPositions(): void {
     this.positionService.searchPositions().subscribe({
       next: (positions: any[]) => {
         this.positions = positions;
-        this.filteredPositions = positions; // Inicialmente, mostrar todas las posiciones
+        this.filteredPositions = positions;
       },
-      error: (err: any) => {
-        console.error('Error al cargar posiciones:', err);
-      },
+      error: (err) => console.error('Error al cargar posiciones:', err)
     });
   }
 
-  // Filtrar posiciones según el término de búsqueda
   searchPositions(): void {
-    this.filteredPositions = this.positions.filter((position) =>
+    this.filteredPositions = this.positions.filter(position =>
       position.name.toLowerCase().includes(this.searchTerm.toLowerCase())
     );
   }
 
-  // Seleccionar una posición
   selectPosition(position: any): void {
-    this.selectedPositionName = position.name; // Actualizar el nombre de la posición seleccionada
-    this.isDropdownOpen = false; // Cerrar el dropdown
-    // Aquí puedes emitir un evento o guardar la posición seleccionada en un servicio
+    this.selectedPosition = position;
+    this.selectedPositionName = position.name;
+    this.isDropdownOpen = false;
   }
 
-  // Abrir modal para agregar una nueva posición
   async openAddPositionModal(): Promise<void> {
     const modal = await this.modalController.create({
-      component: AddPositionModalComponent,
+      component: AddPositionModalComponent
     });
 
     await modal.present();
-
-    // Actualizar la lista de posiciones después de cerrar el modal
     const { data } = await modal.onDidDismiss();
     if (data?.newPosition) {
-      this.loadPositions(); // Recargar las posiciones
+      this.loadPositions();
     }
   }
 
-  // Abrir o cerrar el dropdown
+  async openEditPositionModal(): Promise<void> {
+    if (!this.selectedPosition) return;
+
+    const modal = await this.modalController.create({
+      component: AddPositionModalComponent,
+      componentProps: {
+        positionData: this.selectedPosition
+      }
+    });
+
+    await modal.present();
+    const { data } = await modal.onDidDismiss();
+    if (data?.saved) {
+      this.loadPositions();
+      this.selectedPositionName = data.position.name;
+    }
+  }
+
+  async deletePosition(): Promise<void> {
+    if (!this.selectedPosition) return;
+
+    const alert = await this.alertController.create({
+      header: 'Confirmar eliminación',
+      message: `¿Estás seguro de eliminar la posición "${this.selectedPosition.name}"?`,
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: 'Eliminar',
+          handler: async () => {
+            try {
+              await this.positionService.deletePosition(this.selectedPosition.id).toPromise();
+              this.selectedPosition = null;
+              this.selectedPositionName = '';
+              this.loadPositions();
+            } catch (error) {
+              console.error('Error al eliminar posición:', error);
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
   toggleDropdown(): void {
     this.isDropdownOpen = !this.isDropdownOpen;
+    if (this.isDropdownOpen) {
+      this.loadPositions();
+    }
   }
 }

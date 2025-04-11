@@ -3,20 +3,28 @@ import { RouterModule, Routes } from '@angular/router';
 import { EmployeesListComponent } from './employees-list/employees-list.component';
 import { EmployeeDetailComponent } from './employee-detail/employee-detail.component';
 import { EmployeeFilesComponent } from './employee-files/employee-files.component';
+import { AuthGuard } from 'src/app/guards/auth.guard'; // Adjust the path as necessary
 
 const routes: Routes = [
-  { path: '', component: EmployeesListComponent }, // Lista de empleados
   {
-    path: 'detail', // Ruta para crear un nuevo empleado
-    component: EmployeeDetailComponent,
+    path: '',
+    component: EmployeesListComponent,
+    canActivate: [AuthGuard]
   },
   {
-    path: 'detail/:id', // Ruta para editar un empleado existente
+    path: 'detail',
     component: EmployeeDetailComponent,
+    canActivate: [AuthGuard]
   },
   {
-    path: 'files/:id', // Nueva ruta para gestionar el expediente
+    path: 'detail/:id',
+    component: EmployeeDetailComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'files/:id',
     component: EmployeeFilesComponent,
+    canActivate: [AuthGuard]
   },
 ];
 

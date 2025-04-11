@@ -1,6 +1,6 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Agregar Nueva Posición</ion-title>
+    <ion-title>{{ isEditMode ? 'Editar Posición' : 'Nueva Posición' }}</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="dismiss()">Cerrar</ion-button>
     </ion-buttons>
@@ -9,14 +9,69 @@
 
 <ion-content>
   <form (ngSubmit)="savePosition()">
-    <ion-item>
-      <ion-label position="floating">Nombre de la Posición</ion-label>
-      <ion-input [(ngModel)]="newPosition.name" name="name" required></ion-input>
-    </ion-item>
+    <ion-list>
+      <!-- Nombre de la posición -->
+      <ion-item>
+        <ion-label position="floating">Nombre de la Posición *</ion-label>
+        <ion-input
+          [(ngModel)]="position.name"
+          name="name"
+          required
+          type="text"
+        ></ion-input>
+      </ion-item>
 
-    <ion-button expand="block" type="submit">
-      <ion-icon slot="start" name="save-outline"></ion-icon>
-      Guardar
-    </ion-button>
+      <!-- Selección de área con gestión completa -->
+      <ion-item>
+        <ion-label>Área</ion-label>
+        <ion-select
+          [(ngModel)]="position.area_id"
+          name="area_id"
+          interface="action-sheet"
+          [disabled]="isLoading || errorLoadingAreas"
+        >
+          <ion-select-option [value]="null">Sin área asignada</ion-select-option>
+          <ion-select-option
+            *ngFor="let area of areas"
+            [value]="area.id"
+          >
+            {{ area.name }}
+          </ion-select-option>
+        </ion-select>
+        <ion-button
+          fill="clear"
+          slot="end"
+          (click)="openAreaManagement($event)"
+          *ngIf="!isLoading"
+        >
+          <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
+        </ion-button>
+      </ion-item>
+
+      <!-- Mensajes de estado -->
+      <div class="loading-spinner" *ngIf="isLoading">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Cargando áreas...</span>
+      </div>
+
+      <div class="error-message" *ngIf="errorLoadingAreas">
+        <ion-icon name="warning-outline"></ion-icon>
+        <span>Error al cargar áreas</span>
+        <ion-button fill="clear" (click)="loadAreas()">
+          Reintentar
+        </ion-button>
+      </div>
+
+      <!-- Botón de guardar -->
+      <ion-button
+        expand="block"
+        type="submit"
+        class="save-button"
+        [disabled]="!position.name || isLoading"
+      >
+        <ion-icon slot="start" [name]="isEditMode ? 'save-outline' : 'add-outline'"></ion-icon>
+        {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+      </ion-button>
+    </ion-list>
   </form>
 </ion-content>

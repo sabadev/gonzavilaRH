@@ -56,7 +56,7 @@ export class AttendanceLogComponent implements OnInit {
 
   async loadRecentLogs(): Promise<void> {
     if (!this.employeeId) return;
-  
+
     try {
       const logs = await this.attendanceService.getRecentLogs(this.employeeId).toPromise();
       this.recentLogs = logs || [];
@@ -68,17 +68,17 @@ export class AttendanceLogComponent implements OnInit {
 
   private checkTodaysLogs(): void {
     const today = new Date().toISOString().split('T')[0];
-  
+
     // Verificar si hay una entrada hoy
     this.hasEntry = this.recentLogs.some(
       (log) => log.log_type === 'entry' && log.log_time.startsWith(today)
     );
-  
+
     // Verificar si hay una salida hoy
     this.hasExit = this.recentLogs.some(
       (log) => log.log_type === 'exit' && log.log_time.startsWith(today)
     );
-  
+
     // Obtener el último registro
     const lastLog = this.recentLogs[0];
     this.lastLogType = lastLog ? lastLog.log_type : null;
@@ -136,18 +136,18 @@ export class AttendanceLogComponent implements OnInit {
       this.showToast('Debes tomar una foto primero', 'warning');
       return;
     }
-  
+
     this.loading = true;
     const formData = new FormData();
     formData.append('employee_id', this.employeeId.toString());
     formData.append('log_type', logType);
     formData.append('photo', this.photo);
-  
+
     try {
       await this.attendanceService.registerLogWithPhoto(formData).toPromise();
       this.showToast(`Registro de ${logType} exitoso`, 'success');
       this.photoPreviewUrl = null;
-  
+
       // Obtener logs actualizados desde el servidor
       await this.loadRecentLogs();
     } catch (error) {
@@ -201,6 +201,61 @@ export class AttendanceLogComponent implements OnInit {
     toast.present();
   }
 
+  async changePassword(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Cambiar Contraseña',
+      inputs: [
+        {
+          name: 'newPassword',
+          type: 'password',
+          placeholder: 'Nueva Contraseña',
+          attributes: {
+            required: true,
+            minlength: 6
+          }
+        },
+        {
+          name: 'confirmPassword',
+          type: 'password',
+          placeholder: 'Confirmar Nueva Contraseña',
+          attributes: {
+            required: true,
+            minlength: 6
+          }
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: 'Guardar',
+          handler: async (data) => {
+            if (data.newPassword !== data.confirmPassword) {
+              this.showToast('Las contraseñas no coinciden', 'warning');
+              return false;
+            }
+
+            try {
+              await this.authService.changePassword(
+                data.newPassword
+              ).toPromise();
+
+              this.showToast('Contraseña actualizada exitosamente', 'success');
+              return true;
+            } catch (error) {
+              const errorMessage = (error as Error).message || 'Error al cambiar contraseña';
+              this.showToast(errorMessage, 'danger');
+              return false;
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
 
 
 

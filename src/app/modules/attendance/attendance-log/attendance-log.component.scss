@@ -148,3 +148,23 @@
     font-weight: 500;
   }
 }
+.account-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+
+  .action-button {
+    --ion-color-base: var(--ion-color-secondary);
+    --ion-color-contrast: white;
+    font-weight: 500;
+
+    ion-icon {
+      margin-right: 8px;
+    }
+  }
+
+  .logout-button {
+    --ion-color-base: var(--ion-color-danger);
+    margin-top: 10px;
+  }
+}

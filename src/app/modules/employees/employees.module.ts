@@ -12,6 +12,7 @@ import { EmployeeFilesComponent } from './employee-files/employee-files.componen
 import { PositionListComponent } from './position-list/position-list.component';
 import { AddPositionModalComponent } from './add-position-modal/add-position-modal.component';
 import { PositionListPopoverComponent } from './position-list-popover/position-list-popover.component'; // Importa el componente
+import { AreaListPopoverComponent } from './area-list-popover/area-list-popover.component'; // Importa el componente
 
 @NgModule({
   declarations: [
@@ -21,6 +22,7 @@ import { PositionListPopoverComponent } from './position-list-popover/position-l
     PositionListComponent,
     AddPositionModalComponent,
     PositionListPopoverComponent, // Declara el componente aquí
+    AreaListPopoverComponent,
   ],
   imports: [
     CommonModule,

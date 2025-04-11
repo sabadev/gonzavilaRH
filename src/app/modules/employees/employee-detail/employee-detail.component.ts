@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EmployeesService } from 'src/app/services/employees.service';
+import { ToastController, PopoverController } from '@ionic/angular';
+import { AuthService } from 'src/app/services/auth.service';
 import { PositionService } from 'src/app/services/positions.service';
-import { ToastController, AlertController, ModalController, PopoverController } from '@ionic/angular';
-import { AddPositionModalComponent } from '../add-position-modal/add-position-modal.component';
+import { AreaService } from 'src/app/services/area.service';
 import { PositionListPopoverComponent } from '../position-list-popover/position-list-popover.component';
 
 @Component({
@@ -13,229 +14,190 @@ import { PositionListPopoverComponent } from '../position-list-popover/position-
 })
 export class EmployeeDetailComponent implements OnInit {
   employee: any = {
+    name: '',
+    last_name: '',
+    second_last_name: '',
+    birth_date: '2000-01-01',
+    rfc: '',
+    nss: '',
+    curp: '',
     position_id: null,
     position_name: '',
+    fecha_alta: null,
+    fecha_baja: null,
+    activo: true,
+    base_salary: 0,
+    bonuses: 0,
+    discounts: 0,
+    marital_status: '',
+    address: '',
+    experience: '',
+    education_level: ''
   };
 
-  positions: any[] = []; // Lista completa de posiciones
-  filteredPositions: any[] = []; // Lista filtrada de posiciones
-
-  fields = [
-    { label: 'Nombre', name: 'name', required: true },
-    { label: 'Apellido Paterno', name: 'last_name', required: true },
-    { label: 'Apellido Materno', name: 'second_last_name', required: false },
-    { label: 'Fecha de Nacimiento', name: 'birth_date', required: true, type: 'date' },
-    { label: 'RFC', name: 'rfc', required: true },
-    { label: 'NSS', name: 'nss', required: true },
-    { label: 'CURP', name: 'curp', required: true },
-    { label: 'Posición', name: 'position_id', required: true },
-    { label: 'Fecha de Alta', name: 'fecha_alta', required: false, type: 'date' },
-    { label: 'Fecha de Baja', name: 'fecha_baja', required: false, type: 'date' },
-    { label: 'Activo', name: 'activo', required: false, type: 'checkbox' },
-  ];
+  isSaving = false;
+  isEditMode = false;
 
   constructor(
     private employeesService: EmployeesService,
     private positionService: PositionService,
+    private areaService: AreaService,
     private route: ActivatedRoute,
     private router: Router,
     private toastController: ToastController,
-    private alertController: AlertController,
-    private modalController: ModalController,
+    private authService: AuthService,
     private popoverController: PopoverController
   ) {}
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
+    if (id && id !== 'new') {
+      this.isEditMode = true;
       this.loadEmployee(id);
     }
-    this.loadPositions(); // Cargar las posiciones al iniciar
   }
 
-
-
-// Abrir popover para seleccionar posición
-async openPositionPopover(ev: any) {
-  const popover = await this.popoverController.create({
-    component: PositionListPopoverComponent,
-    event: ev,
-    translucent: true,
-  });
-
-  await popover.present();
-
-  // Escuchar el evento de cierre del popover
-  const { data } = await popover.onDidDismiss();
-  if (data?.positionSelected) {
-    this.employee.position_id = data.positionSelected.id; // Actualizar el ID de la posición
-    this.employee.position_name = data.positionSelected.name; // Actualizar el nombre de la posición
-  }
-}
-
-  // Seleccionar una posición
-  selectPosition(position: any): void {
-    this.employee.position_id = position.id;
-    this.employee.position_name = position.name;
-  }
-
-  // Cargar las posiciones
-  loadPositions(): void {
-    this.positionService.searchPositions().subscribe({
-      next: (positions: any[]) => {
-        this.positions = positions;
-        this.filteredPositions = positions; // Inicialmente, mostrar todas las posiciones
-      },
-      error: (err: any) => {
-        console.error('Error al cargar posiciones:', err);
-      },
-    });
-  }
-
-  // Filtrar posiciones según el término de búsqueda
-  filterPositions(event: any): void {
-    const searchTerm = event.target.value.toLowerCase();
-    this.filteredPositions = this.positions.filter((position) =>
-      position.name.toLowerCase().includes(searchTerm)
-    );
-  }
-
-  // Manejar la posición seleccionada
-  onPositionSelected(event: any): void {
-    const selectedPosition = this.positions.find((p) => p.id === event.detail.value);
-    if (selectedPosition) {
-      this.employee.position_name = selectedPosition.name;
-    }
-  }
-
-  // Abrir modal para agregar una nueva posición
-  async openAddPositionModal(event: Event): Promise<void> {
-    event.stopPropagation(); // Evitar que el ion-select se cierre
-
-    const modal = await this.modalController.create({
-      component: AddPositionModalComponent,
+  async openPositionPopover(ev: any) {
+    const popover = await this.popoverController.create({
+      component: PositionListPopoverComponent,
+      event: ev,
+      translucent: true,
+      size: 'auto',
+      cssClass: 'position-popover'
     });
 
-    await modal.present();
+    popover.onDidDismiss().then(({ data }) => {
+      if (data?.positionSelected) {
+        this.employee.position_id = data.positionSelected.id;
+        this.employee.position_name = data.positionSelected.name;
+      }
+    });
 
-    // Actualizar la lista de posiciones después de cerrar el modal
-    const { data } = await modal.onDidDismiss();
-    if (data?.newPosition) {
-      this.loadPositions(); // Recargar las posiciones
-    }
+    await popover.present();
   }
 
-  // Cargar los datos del empleado
   loadEmployee(id: string): void {
     this.employeesService.getEmployeeById(id).subscribe({
       next: (data: any) => {
         this.employee = data;
-
-        // Formatear fechas si existen
-        if (this.employee.birth_date) {
-          this.employee.birth_date = new Date(this.employee.birth_date).toISOString().substring(0, 10);
-        }
-        if (this.employee.fecha_alta) {
-          this.employee.fecha_alta = new Date(this.employee.fecha_alta).toISOString().substring(0, 10);
-        }
-        if (this.employee.fecha_baja) {
-          this.employee.fecha_baja = new Date(this.employee.fecha_baja).toISOString().substring(0, 10);
-        }
-
-        console.log('Empleado obtenido:', this.employee);
+        this.employee.position_name = data.position?.name || '';
+        this.formatDates();
       },
       error: (err: any) => {
         console.error('Error al cargar empleado:', err);
+        this.handleLoadError(err);
       },
     });
   }
 
-  // Guardar empleado
+  private formatDates(): void {
+    const formatDate = (dateString: string) => {
+      if (!dateString) return null;
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    };
+
+    this.employee.birth_date = formatDate(this.employee.birth_date);
+    this.employee.fecha_alta = formatDate(this.employee.fecha_alta);
+    this.employee.fecha_baja = formatDate(this.employee.fecha_baja);
+  }
+
   saveEmployee(): void {
-    if (!this.validateFields()) {
-      this.presentToast('Por favor, completa todos los campos obligatorios', 'danger');
+    if (!this.validateForm()) {
       return;
     }
 
-    if (this.employee.id) {
-      // Actualizar empleado existente
-      this.employeesService.updateEmployee(this.employee.id, this.employee).subscribe({
-        next: () => {
-          this.presentToast('Empleado actualizado exitosamente');
-          this.router.navigate(['/employees']);
-        },
-        error: (err: any) => {
-          this.presentToast(err.error?.error || 'Error al actualizar empleado', 'danger');
-        },
-      });
+    this.isSaving = true;
+
+    if (this.isEditMode) {
+      this.updateEmployee();
     } else {
-      // Crear nuevo empleado
-      this.employeesService.createEmployee(this.employee).subscribe({
-        next: (response: any) => {
-          this.presentToast(
-            `Empleado creado exitosamente. Usuario: ${response.username}, Contraseña: ${response.password}`
-          );
-          this.router.navigate(['/employees']);
-        },
-        error: (err: any) => {
-          this.presentToast(err.error?.error || 'Error al crear empleado', 'danger');
-        },
-      });
+      this.createEmployee();
     }
   }
 
-  // Actualizar contraseña
-  async updatePassword(): Promise<void> {
-    const alert = await this.alertController.create({
-      header: 'Actualizar Contraseña',
-      inputs: [
-        {
-          name: 'newPassword',
-          type: 'password',
-          placeholder: 'Ingresa la nueva contraseña',
-        },
-      ],
-      buttons: [
-        {
-          text: 'Cancelar',
-          role: 'cancel',
-        },
-        {
-          text: 'Actualizar',
-          handler: (data) => {
-            if (!data.newPassword) {
-              this.presentToast('Por favor, ingresa una nueva contraseña', 'danger');
-              return false;
-            }
+  private validateForm(): boolean {
+    if (!this.employee.name || !this.employee.last_name) {
+      this.presentToast('Nombre y apellido paterno son obligatorios', 'danger');
+      return false;
+    }
 
-            this.employeesService.updatePassword(this.employee.id, data.newPassword).subscribe({
-              next: () => {
-                this.presentToast('Contraseña actualizada exitosamente');
-              },
-              error: (err: any) => {
-                this.presentToast(err.error?.error || 'Error al actualizar contraseña', 'danger');
-              },
-            });
-            return true;
-          },
-        },
-      ],
+    if (!this.employee.curp) {
+      this.presentToast('El CURP es obligatorio', 'danger');
+      return false;
+    }
+
+    if (!this.employee.rfc) {
+      this.presentToast('El RFC es obligatorio', 'danger');
+      return false;
+    }
+
+    if (!this.employee.nss) {
+      this.presentToast('El NSS es obligatorio', 'danger');
+      return false;
+    }
+
+    if (!this.employee.position_id) {
+      this.presentToast('Debe seleccionar una posición', 'danger');
+      return false;
+    }
+
+    return true;
+  }
+
+  private updateEmployee(): void {
+    this.employeesService.updateEmployee(this.employee.id, this.employee).subscribe({
+      next: () => {
+        this.presentToast('Empleado actualizado exitosamente');
+        this.router.navigate(['/employees']);
+      },
+      error: (err: any) => {
+        this.handleSaveError(err);
+      },
     });
-
-    await alert.present();
   }
 
-  // Validar campos obligatorios
-  private validateFields(): boolean {
-    return this.fields.every((field) => !field.required || !!this.employee[field.name]);
+  private createEmployee(): void {
+    this.employeesService.createEmployee(this.employee).subscribe({
+      next: (response: any) => {
+        const message = `Empleado creado exitosamente`;
+        this.presentToast(message);
+        this.router.navigate(['/employees']);
+      },
+      error: (err: any) => {
+        this.handleSaveError(err);
+      },
+    });
   }
 
-  // Mostrar un toast
+  private handleLoadError(error: any): void {
+    if (error.status === 401) {
+      this.presentToast('Sesión expirada. Por favor ingresa nuevamente', 'danger');
+      this.authService.logout();
+      this.router.navigate(['/login']);
+    } else {
+      this.presentToast('Error al cargar datos del empleado', 'danger');
+      this.router.navigate(['/employees']);
+    }
+  }
+
+  private handleSaveError(error: any): void {
+    this.isSaving = false;
+    if (error.status === 401) {
+      this.presentToast('Sesión expirada. Por favor ingresa nuevamente', 'danger');
+      this.authService.logout();
+      this.router.navigate(['/login']);
+    } else {
+      this.presentToast(error.error?.error || 'Error al guardar empleado', 'danger');
+    }
+  }
+
   private async presentToast(message: string, color: string = 'success') {
     const toast = await this.toastController.create({
       message,
-      color,
       duration: 3000,
+      color,
+      position: 'top'
     });
     await toast.present();
   }

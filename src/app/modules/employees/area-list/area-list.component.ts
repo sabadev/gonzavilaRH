@@ -1,6 +1,6 @@
 // components/area-list/area-list.component.ts
 import { Component, OnInit } from '@angular/core';
-import { AreaService } from '../../services/area.service';
+import { AreaService } from 'src/app/services/area.service';
 import { ModalController } from '@ionic/angular';
 import { AddAreaModalComponent } from '../add-area-modal/add-area-modal.component';
 

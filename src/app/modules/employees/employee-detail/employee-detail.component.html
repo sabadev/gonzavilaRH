@@ -1,67 +1,182 @@
-<ion-content>
-  <form (ngSubmit)="saveEmployee()" class="form-container">
-    <ion-list>
-      <ion-item *ngFor="let field of fields">
-        <!-- Campo de posición con ion-select -->
-        <div *ngIf="field.name === 'position_id'; else defaultField">
-          <ion-item (click)="openPositionPopover($event)">
-            <ion-label>{{ field.label }}</ion-label>
-            <ion-text slot="end">
-              {{ employee.position_name || 'Selecciona una posición' }}
-            </ion-text>
-          </ion-item>
-        </div>
+<ion-header>
+  <ion-toolbar color="dark">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/employees"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Editar Empleado' : 'Nuevo Empleado' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="saveEmployee()" [disabled]="isSaving">
+        <ion-icon slot="icon-only" name="save-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
 
-        <!-- Campo de área (solo lectura) -->
-        <div *ngIf="field.name === 'area_name'">
+<ion-content class="form-container">
+  <form (ngSubmit)="saveEmployee()">
+    <ion-list class="form-list">
+      <!-- Información Personal -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="person-outline"></ion-icon> Información Personal
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
           <ion-item>
-            <ion-label>{{ field.label }}</ion-label>
-            <ion-text slot="end">
-              {{ employee.area || 'Sin área' }}
-            </ion-text>
+            <ion-label position="floating">Nombre(s) *</ion-label>
+            <ion-input [(ngModel)]="employee.name" name="name" required></ion-input>
           </ion-item>
-        </div>
 
-        <!-- Campos normales -->
-        <ng-template #defaultField>
-          <ion-input
-            *ngIf="field.type !== 'checkbox'; else checkboxField"
-            [label]="field.label"
-            labelPlacement="floating"
-            [(ngModel)]="employee[field.name]"
-            [name]="field.name"
-            [type]="field.type || 'text'"
-            [required]="field.required"
-            [readonly]="field.readonly"
-          ></ion-input>
+          <ion-item>
+            <ion-label position="floating">Apellido Paterno *</ion-label>
+            <ion-input [(ngModel)]="employee.last_name" name="last_name" required></ion-input>
+          </ion-item>
 
-          <ng-template #checkboxField>
-            <ion-checkbox
-              slot="start"
-              [(ngModel)]="employee[field.name]"
-              [name]="field.name"
-            ></ion-checkbox>
-            <ion-label>{{ field.label }}</ion-label>
-          </ng-template>
-        </ng-template>
-      </ion-item>
+          <ion-item>
+            <ion-label position="floating">Apellido Materno</ion-label>
+            <ion-input [(ngModel)]="employee.second_last_name" name="second_last_name"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Fecha de Nacimiento *</ion-label>
+            <!-- Uso de presentation="date" para un picker compacto -->
+            <ion-datetime
+              presentation="date"
+              displayFormat="DD/MM/YYYY"
+              [(ngModel)]="employee.birth_date"
+              name="birth_date">
+            </ion-datetime>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Estado Civil</ion-label>
+            <ion-select [(ngModel)]="employee.marital_status" name="marital_status" interface="popover">
+              <ion-select-option value="Soltero/a">Soltero/a</ion-select-option>
+              <ion-select-option value="Casado/a">Casado/a</ion-select-option>
+              <ion-select-option value="Divorciado/a">Divorciado/a</ion-select-option>
+              <ion-select-option value="Viudo/a">Viudo/a</ion-select-option>
+              <ion-select-option value="Unión Libre">Unión Libre</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Documentos -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="document-text-outline"></ion-icon> Documentos
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item>
+            <ion-label position="floating">CURP *</ion-label>
+            <ion-input [(ngModel)]="employee.curp" name="curp" required></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">RFC *</ion-label>
+            <ion-input [(ngModel)]="employee.rfc" name="rfc" required></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">NSS *</ion-label>
+            <ion-input [(ngModel)]="employee.nss" name="nss" required></ion-input>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Puesto -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="briefcase-outline"></ion-icon> Puesto
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item button (click)="openPositionPopover($event)">
+            <ion-label position="stacked">Posición *</ion-label>
+            <ion-input [value]="employee.position_name || 'Seleccionar posición'" readonly name="position_name"></ion-input>
+            <ion-icon slot="end" name="chevron-down-outline"></ion-icon>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Fecha de Alta</ion-label>
+            <ion-datetime
+              presentation="date"
+              displayFormat="DD/MM/YYYY"
+              [(ngModel)]="employee.fecha_alta"
+              name="fecha_alta">
+            </ion-datetime>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Fecha de Baja</ion-label>
+            <ion-datetime
+              presentation="date"
+              displayFormat="DD/MM/YYYY"
+              [(ngModel)]="employee.fecha_baja"
+              name="fecha_baja">
+            </ion-datetime>
+          </ion-item>
+
+          <ion-item lines="none">
+            <ion-label>Activo</ion-label>
+            <ion-toggle [(ngModel)]="employee.activo" name="activo"></ion-toggle>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Salario -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="cash-outline"></ion-icon> Salario
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item>
+            <ion-label position="floating">Salario Base</ion-label>
+            <ion-input type="number" [(ngModel)]="employee.base_salary" name="base_salary"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">Bonos</ion-label>
+            <ion-input type="number" [(ngModel)]="employee.bonuses" name="bonuses"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">Descuentos</ion-label>
+            <ion-input type="number" [(ngModel)]="employee.discounts" name="discounts"></ion-input>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Información Adicional -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="information-circle-outline"></ion-icon> Información Adicional
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item>
+            <ion-label position="stacked">Dirección</ion-label>
+            <ion-textarea [(ngModel)]="employee.address" name="address" rows="3"></ion-textarea>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Experiencia</ion-label>
+            <ion-textarea [(ngModel)]="employee.experience" name="experience" rows="3"></ion-textarea>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">Nivel de Educación</ion-label>
+            <ion-input [(ngModel)]="employee.education_level" name="education_level"></ion-input>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
     </ion-list>
-
-    <ion-note class="info-note">
-      El usuario y la contraseña se generan automáticamente al crear un empleado.
-    </ion-note>
-
-    <!-- Botón guardar -->
-    <ion-button expand="block" type="submit" class="save-button">
-      <ion-icon slot="start" [name]="employee.id ? 'save-outline' : 'add-outline'"></ion-icon>
-      {{ employee.id ? 'Actualizar' : 'Crear' }}
-    </ion-button>
   </form>
-
-  <!-- Botón flotante para actualizar contraseña -->
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button class="fab-button" (click)="updatePassword()">
-      <ion-icon name="key-outline"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
 </ion-content>

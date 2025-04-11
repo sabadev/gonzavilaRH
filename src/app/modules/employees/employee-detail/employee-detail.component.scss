@@ -1,76 +1,168 @@
-// Variables de colores
-$primary-color: #0078d4;
-$secondary-color: #f4f4f4;
-$text-color: #333333;
-$note-color: #e3f2fd;
-$button-color: #0078d4;
-$button-hover: #005a9e;
-$icon-color: #ffffff;
+// Variables globales para mantener la consistencia
+$form-background: var(--ion-color-light);
+$form-item-bg: var(--ion-item-background);
+$form-border: 1px solid var(--ion-color-light-shade);
+$transition-speed: 0.3s;
+$border-radius: 8px;
 
-ion-content {
-  --background: #f9fafb;
+// Contenedor general del formulario
+.form-container {
+  background: $form-background;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 8px;
 
-  .form-container {
+  @media (min-width: 768px) {
     padding: 16px;
+  }
 
-    ion-list {
-      ion-item {
-        margin-bottom: 12px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        --background: $secondary-color;
-        --color: $text-color;
+  @media (min-width: 992px) {
+    max-width: 920px;
+  }
+}
 
-        ion-input {
-          --placeholder-color: lighten($text-color, 20%);
-          color: $text-color;
-        }
-      }
-    }
+// Estilos del ion-card
+ion-card {
+  background: $form-item-bg;
+  margin: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  overflow: visible;
 
-    .info-note {
-      display: block;
-      text-align: center;
-      margin-top: 8px;
-      font-size: 0.9rem;
-      color: darken($primary-color, 20%);
-      background-color: $note-color;
-      border-radius: 6px;
-      padding: 8px;
-    }
+  ion-card-header {
+    padding: 16px 16px 8px;
 
-    .save-button {
-      margin-top: 16px;
-      background-color: $button-color;
-      color: $icon-color;
-      font-size: 1rem;
-      font-weight: bold;
-      border-radius: 8px;
-
-      &:hover {
-        background-color: $button-hover;
-      }
-
-      ion-icon {
-        font-size: 1.2rem;
-      }
+    ion-card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--ion-color-primary);
+      letter-spacing: 0.5px;
     }
   }
 
-  ion-fab-button.fab-button {
-    background-color: #4caf50; // Verde más moderno
-    color: #ffffff; // Blanco para el ícono
-    border-radius: 50%; // Asegura el círculo perfecto
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); // Sombra suave para dar un efecto flotante
-    width: 56px; // Tamaño más pequeño para minimalismo
-    height: 56px;
+  ion-card-content {
+    padding: 8px 16px 16px;
+  }
+}
 
+// Grid para el formulario
+.form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+
+  @media (min-width: 768px) {
+    gap: 20px;
+  }
+}
+
+// Estilos para cada input / select / textarea
+.form-item {
+  background: $form-item-bg;
+  border: $form-border;
+  border-radius: $border-radius;
+  margin: 0;
+  padding: 0 12px;
+  min-height: 56px;
+  transition: border-color $transition-speed ease;
+
+  // Etiqueta
+  ion-label[position="stacked"] {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ion-color-medium);
+    margin-bottom: 4px;
+    transform: translateY(20%);
+    transition: transform $transition-speed ease;
+  }
+
+  // Controles del formulario
+  ion-input, ion-select, ion-textarea, ion-datetime {
+    padding: 8px 0;
+    font-size: 1rem;
+    color: var(--ion-color-dark);
+  }
+
+  &.ion-focused {
+    border-color: var(--ion-color-primary);
+
+    ion-label[position="stacked"] {
+      color: var(--ion-color-primary);
+      transform: translateY(0);
+    }
+  }
+}
+
+// Selector de posición con interactividad
+.position-selector {
+  padding-right: 8px;
+  cursor: pointer;
+
+  ion-icon {
+    color: var(--ion-color-medium);
+    transition: transform $transition-speed ease;
+  }
+
+  &.ion-focused {
     ion-icon {
-      font-size: 1.5rem; // Tamaño del ícono ajustado
+      color: var(--ion-color-primary);
+      transform: rotate(180deg);
     }
+  }
+}
 
-    &:hover {
-      background-color: #388e3c; // Un tono más oscuro al pasar el cursor
+// Ajuste para inputs en solo lectura
+ion-input[readonly] {
+  opacity: 1;
+  cursor: pointer;
+}
+
+// Estilos para toggle
+.toggle-item {
+  border: none;
+  padding-right: 0;
+
+  ion-label {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--ion-color-dark);
+  }
+
+  ion-toggle {
+    --handle-width: 22px;
+    --handle-height: 22px;
+  }
+}
+
+// Indicador de campo requerido
+.required {
+  color: var(--ion-color-danger);
+  font-size: 0.9em;
+  margin-left: 2px;
+}
+
+/* Modo oscuro automático */
+@media (prefers-color-scheme: dark) {
+  .form-container {
+    background: var(--ion-color-dark);
+  }
+
+  .form-item {
+    border-color: var(--ion-color-dark-shade);
+
+    ion-label[position="stacked"] {
+      color: var(--ion-color-medium);
     }
+  }
+
+  .position-selector ion-icon {
+    color: var(--ion-color-medium);
+  }
+}
+
+/* Ajustes para tablets y escritorio */
+@media (min-width: 768px) {
+  ion-card {
+    margin: 16px 24px;
   }
 }

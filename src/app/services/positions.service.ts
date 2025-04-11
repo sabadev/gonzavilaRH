@@ -1,4 +1,13 @@
 import { Injectable } from '@angular/core';
+
+/**
+ * Interface para representar una posición.
+ */
+export interface Position {
+  id?: number;
+  name: string;
+  parent_id?: number;
+}
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -44,11 +53,11 @@ export class PositionService {
    * Crear una nueva posición.
    * @param position Datos de la posición a crear.
    */
-  createPosition(position: { name: string; parent_id?: number }): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}`, position).pipe(
-      catchError((error) => {
+  createPosition(position: Omit<Position, 'id'>): Observable<Position> {
+    return this.http.post<Position>(this.apiUrl, position).pipe(
+      catchError(error => {
         console.error('Error al crear posición:', error);
-        return throwError(() => new Error('Error al crear posición.'));
+        throw error;
       })
     );
   }
@@ -58,11 +67,11 @@ export class PositionService {
    * @param id ID de la posición a actualizar.
    * @param position Datos actualizados de la posición.
    */
-  updatePosition(id: number, position: { name: string; parent_id?: number }): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, position).pipe(
-      catchError((error) => {
+  updatePosition(id: number, position: Partial<Position>): Observable<Position> {
+    return this.http.put<Position>(`${this.apiUrl}/${id}`, position).pipe(
+      catchError(error => {
         console.error('Error al actualizar posición:', error);
-        return throwError(() => new Error('Error al actualizar posición.'));
+        throw error;
       })
     );
   }
@@ -79,4 +88,7 @@ export class PositionService {
       })
     );
   }
+
+
+
 }

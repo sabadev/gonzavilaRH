@@ -37,7 +37,7 @@
         <ion-button (click)="registerAttendanceWithPhoto('entry')">
           Registrar Entrada
         </ion-button>
-        
+
         <ion-button (click)="registerAttendanceWithPhoto('exit')">
           Registrar Salida
         </ion-button>
@@ -80,10 +80,22 @@
   </ion-card>
 
   <!-- Botón de cierre de sesión -->
-  <div class="logout-container">
-    <ion-button expand="block" color="danger" (click)="logout()" class="logout-button">
-      <ion-icon name="log-out" slot="start"></ion-icon>
-      Cerrar Sesión
-    </ion-button>
-  </div>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Configuración de Cuenta</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="account-actions">
+        <ion-button expand="block" color="secondary" (click)="changePassword()" class="action-button">
+          <ion-icon name="key-outline" slot="start"></ion-icon>
+          Cambiar Contraseña
+        </ion-button>
+
+        <ion-button expand="block" color="danger" (click)="logout()" class="action-button">
+          <ion-icon name="log-out-outline" slot="start"></ion-icon>
+          Cerrar Sesión
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
 </ion-content>
