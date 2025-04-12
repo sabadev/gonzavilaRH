@@ -1,126 +1,154 @@
-import { Component, OnInit } from '@angular/core';
-import {
-  trigger,
-  style,
-  transition,
-  animate,
-  query,
-  stagger,
-  group,
-} from '@angular/animations';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { EmployeesService } from 'src/app/services/employees.service';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AlertController } from '@ionic/angular';
-import { ActivatedRoute } from '@angular/router';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-employees-list',
   templateUrl: './employees-list.component.html',
   styleUrls: ['./employees-list.component.scss'],
-  animations: [
-    trigger('itemAnimation', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'scale(0.8)' }),
-        animate('300ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
-      ]),
-      transition(':leave', [
-        animate('300ms ease-in', style({ opacity: 0, transform: 'scale(0.8)' })),
-      ]),
-    ]),
-    trigger('viewChangeAnimation', [
-      transition('list => grid', [
-        group([
-          query(
-            ':enter',
-            [
-              style({ opacity: 0, transform: 'scale(0.8)' }),
-              stagger(50, animate('300ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))),
-            ],
-            { optional: true }
-          ),
-        ]),
-      ]),
-      transition('grid => list', [
-        group([
-          query(
-            ':enter',
-            [
-              style({ opacity: 0, transform: 'translateY(-20px)' }),
-              stagger(50, animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))),
-            ],
-            { optional: true }
-          ),
-        ]),
-      ]),
-    ]),
-  ],
 })
-export class EmployeesListComponent implements OnInit {
+export class EmployeesListComponent implements OnInit, OnDestroy {
   employees: any[] = [];
   filteredEmployees: any[] = [];
-  searchTerm: string = '';
-  viewMode: 'list' | 'grid' = 'list'; // Default view
+  isLoading = true;
+  searchTerm = '';
+  private subscriptions = new Subscription();
 
   constructor(
     private employeesService: EmployeesService,
+    private router: Router,
     private alertController: AlertController,
-    private route: ActivatedRoute
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.loadEmployees();
-    this.route.params.subscribe(() => {
-      this.loadEmployees();
-    });
+    this.subscribeToUpdates();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private subscribeToUpdates(): void {
+    this.subscriptions.add(
+      this.employeesService.refresh$.subscribe(() => {
+        this.loadEmployees();
+      })
+    );
   }
 
   loadEmployees(): void {
-    this.employeesService.getEmployees().subscribe({
-      next: (data) => {
-        this.employees = data.filter((employee) => employee.username);
-        this.filteredEmployees = [...this.employees];
-      },
-      error: (error) => {
-        console.error('Error al cargar empleados:', error);
-      },
-    });
+    this.isLoading = true;
+    this.subscriptions.add(
+      this.employeesService.employees$.subscribe({
+        next: (employees) => {
+          this.employees = employees;
+          this.filterEmployees();
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading employees:', error);
+          this.isLoading = false;
+          this.handleLoadingError(error);
+        }
+      })
+    );
   }
 
-  filterEmployees(event: any): void {
-    const searchValue = event.target.value.toLowerCase();
-    this.filteredEmployees = this.employees.filter((employee) => {
-      const fullName = `${employee.name} ${employee.last_name || ''} ${employee.second_last_name || ''}`;
-      return (
-        fullName.toLowerCase().includes(searchValue) ||
-        (employee.position || '').toLowerCase().includes(searchValue) ||
-        (employee.username || '').toLowerCase().includes(searchValue)
-      );
-    });
+  private handleLoadingError(error: any): void {
+    if (error.status === 401) {
+      this.showSessionExpiredAlert();
+    } else {
+      this.showErrorAlert();
+    }
   }
 
-  onViewModeChange(event: any): void {
-    this.viewMode = event.detail.value;
+  filterEmployees(): void {
+    if (!this.searchTerm) {
+      this.filteredEmployees = [...this.employees];
+      return;
+    }
+
+    const term = this.searchTerm.toLowerCase();
+    this.filteredEmployees = this.employees.filter(employee =>
+      employee.name.toLowerCase().includes(term) ||
+      employee.last_name.toLowerCase().includes(term) ||
+      employee.position?.toLowerCase().includes(term) ||
+      employee.area?.toLowerCase().includes(term)
+    );
+  }
+
+  private async showErrorAlert(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Error',
+      message: 'No se pudo cargar la lista de empleados',
+      buttons: ['OK']
+    });
+    await alert.present();
+  }
+
+  private async showSessionExpiredAlert(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Sesión Expirada',
+      message: 'Tu sesión ha expirado. Por favor inicia sesión nuevamente.',
+      buttons: ['OK']
+    });
+    await alert.present();
+    this.authService.logout();
+  }
+
+  editEmployee(id: string): void {
+    this.router.navigate(['/employees/detail', id]);
+  }
+
+  createEmployee(): void {
+    this.router.navigate(['/employees/detail/new']);
   }
 
   async confirmDelete(employee: any): Promise<void> {
     const alert = await this.alertController.create({
-      header: 'Confirmar Eliminación',
-      message: `¿Estás seguro de eliminar a ${employee.name}?`,
+      header: 'Confirmar',
+      message: `¿Estás seguro de eliminar a ${employee.name} ${employee.last_name}?`,
       buttons: [
-        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
         {
           text: 'Eliminar',
-          handler: () => this.deleteEmployee(employee.id),
-        },
-      ],
+          handler: () => {
+            this.deleteEmployee(employee.id);
+          }
+        }
+      ]
     });
-
     await alert.present();
   }
 
-  deleteEmployee(id: string): void {
-    this.employeesService.deleteEmployee(id).subscribe({
-      next: () => this.loadEmployees(),
-      error: (error) => console.error('Error al eliminar empleado:', error),
+  private deleteEmployee(id: string): void {
+    this.subscriptions.add(
+      this.employeesService.deleteEmployee(id).subscribe({
+        next: () => {
+          // La actualización se manejará mediante refresh$
+        },
+        error: (error) => {
+          console.error('Error deleting employee:', error);
+          this.showDeleteErrorAlert();
+        }
+      })
+    );
+  }
+
+  private async showDeleteErrorAlert(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Error',
+      message: 'No se pudo eliminar el empleado',
+      buttons: ['OK']
     });
+    await alert.present();
   }
 }

@@ -1,0 +1,39 @@
+<div class="dropdown-container">
+  <ion-input
+    [(ngModel)]="selectedPositionName"
+    (click)="toggleDropdown()"
+    placeholder="Selecciona una posición"
+    readonly
+  ></ion-input>
+
+  <div class="dropdown-list" *ngIf="isDropdownOpen">
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="searchPositions()"
+      placeholder="Buscar posición..."
+    ></ion-searchbar>
+
+    <ion-list>
+      <ion-item *ngFor="let position of filteredPositions" (click)="selectPosition(position)">
+        {{ position.name }}
+      </ion-item>
+    </ion-list>
+
+    <div class="action-buttons">
+      <ion-button expand="block" (click)="openAddPositionModal()">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Agregar Nueva
+      </ion-button>
+
+      <ion-button *ngIf="selectedPosition" expand="block" color="warning" (click)="openEditPositionModal()">
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        Editar
+      </ion-button>
+
+      <ion-button *ngIf="selectedPosition" expand="block" color="danger" (click)="deletePosition()">
+        <ion-icon slot="start" name="trash-outline"></ion-icon>
+        Eliminar
+      </ion-button>
+    </div>
+  </div>
+</div>

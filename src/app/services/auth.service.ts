@@ -1,6 +1,6 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { ConfigService } from './config.service';
 
@@ -9,44 +9,77 @@ import { ConfigService } from './config.service';
 })
 export class AuthService {
   private apiUrl: string;
+  private apiUrl2: string;
+  private authState = new BehaviorSubject<boolean>(this.isAuthenticated());
 
   constructor(private http: HttpClient, private configService: ConfigService) {
     this.apiUrl = `${this.configService.apiUrl}/auth`;
+    this.apiUrl2 = `${this.configService.apiUrl}/employees`;
+  }
+
+  private getAuthHeaders(): HttpHeaders {
+    const token = this.getToken();
+    return new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    });
+  }
+
+  changePassword(newPassword: string): Observable<any> {
+    const employeeId = this.getEmployeeId();
+    if (!employeeId) {
+      return throwError(() => new Error('No se pudo obtener el ID del empleado'));
+    }
+
+    return this.http.put(
+      `${this.apiUrl2}/update-password/${employeeId}`,
+      { newPassword }, // Enviar solo newPassword como requiere el backend
+      { headers: this.getAuthHeaders() }
+    ).pipe(
+      catchError((error) => {
+        console.error('Error al cambiar contraseña:', error);
+        return throwError(() => new Error(error.error?.error || 'Error al cambiar contraseña'));
+      })
+    );
   }
 
   login(username: string, password: string): Observable<{ token: string; employeeId?: number }> {
     return this.http.post<{ token: string; employeeId?: number }>(`${this.apiUrl}/login`, { username, password }).pipe(
-      tap(response => {
-        console.log('Respuesta del servidor en login:', response);
-
+      tap((response) => {
         if (response.token) {
           localStorage.setItem('token', response.token);
-          console.log('Token guardado en localStorage.');
-        } else {
-          console.error('El servidor no devolvió un token válido.');
-        }
-
-        if (response.employeeId !== undefined && response.employeeId !== null) {
-          localStorage.setItem('employeeId', response.employeeId.toString());
-          console.log('EmployeeId guardado en localStorage:', response.employeeId);
-        } else {
-          console.warn('El servidor devolvió un employeeId vacío o nulo.');
-          localStorage.removeItem('employeeId');
+          if (response.employeeId) {
+            localStorage.setItem('employeeId', response.employeeId.toString());
+          }
+          this.authState.next(true);
         }
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error en el inicio de sesión:', error);
         return throwError(() => new Error('Credenciales inválidas o error en el servidor.'));
       })
     );
   }
 
+  logout(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('employeeId');
+    this.authState.next(false);
+  }
 
+  isAuthenticated(): boolean {
+    const token = this.getToken();
+    return token ? this.isTokenValid(token) : false;
+  }
 
-  isTokenValid(): boolean {
-    const token = localStorage.getItem('token');
-    if (!token) return false;
+  getToken(): string | null {
+    return localStorage.getItem('token');
+  }
 
+  checkUsernameExists(username: string): Observable<boolean> {
+    return this.http.post<boolean>('/api/check-username', { username });
+  }
+
+  private isTokenValid(token: string): boolean {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.exp * 1000 > Date.now();
@@ -57,7 +90,7 @@ export class AuthService {
   }
 
   getRoleFromToken(): string | null {
-    const token = localStorage.getItem('token');
+    const token = this.getToken();
     if (!token) return null;
 
     try {
@@ -69,30 +102,12 @@ export class AuthService {
     }
   }
 
-  logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('employeeId');
+  getEmployeeId(): number | null {
+    const employeeId = localStorage.getItem('employeeId');
+    return employeeId && !isNaN(Number(employeeId)) ? Number(employeeId) : null;
   }
 
-  private storeToken(token: string): void {
-    localStorage.setItem('token', token);
+  getAuthState(): Observable<boolean> {
+    return this.authState.asObservable();
   }
-
-  private storeEmployeeId(employeeId: number): void {
-    localStorage.setItem('employeeId', employeeId.toString());
-  }
-
-    // Método para verificar si el usuario está autenticado
-    isAuthenticated(): boolean {
-      const token = localStorage.getItem('token');
-      if (!token) return false;
-
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1])); // Decodificar el token JWT
-        return payload.exp * 1000 > Date.now(); // Verificar si el token ha expirado
-      } catch (error) {
-        console.error('Token inválido o malformado:', error);
-        return false;
-      }
-    }
 }

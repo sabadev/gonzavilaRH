@@ -1,10 +1,20 @@
-:root {
-  --toast-success-background: #28a745; /* Verde para éxito */
-  --toast-danger-background: #dc3545;  /* Rojo para error */
-  --toast-warning-background: #ffc107; /* Amarillo para advertencias */
-  --toast-text-color: #ffffff;         /* Texto blanco */
+.meal-selected-overlay {
+  position: absolute;
+  top: 100px;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 20px;
+  text-align: center;
+  z-index: 10;
 }
-ion-item.selected-meal {
-  background-color: #d1f7d6; // Un verde claro para resaltar
-  border: 2px solid #0a802f; // Un borde verde oscuro
+
+.meal-selected-overlay h2 {
+  color: #ff5722;
+  margin-bottom: 10px;
+}
+
+.meal-selected-overlay p {
+  color: #616161;
+  margin-bottom: 20px;
 }

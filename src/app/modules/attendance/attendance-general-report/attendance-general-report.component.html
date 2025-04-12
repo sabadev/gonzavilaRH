@@ -1,55 +1,130 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-title>Reporte General</ion-title>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content>
-  <form (ngSubmit)="getReport()">
-    <div class="date-container">
-      <!-- Selección de fecha inicial -->
-      <ion-item>
-        <ion-label position="stacked">Inicio (Jueves)</ion-label>
-        <ion-datetime-button datetime="start"></ion-datetime-button>
-        <ion-datetime
-          id="start"
-          [(ngModel)]="startDate"
-          (ionChange)="onStartDateChange()"
-          name="startDate"
-          presentation="date"
-        ></ion-datetime>
-      </ion-item>
+  <div class="content-wrapper">
+    <!-- Selectores de Fecha -->
+    <div class="date-selectors">
+      <div class="date-input-container">
+        <ion-label>Fecha Inicial</ion-label>
+        <div class="input-wrapper">
+          <input
+            type="date"
+            [(ngModel)]="startDate"
+            class="date-input"
+            placeholder="Seleccionar fecha"
+          />
+          <ion-icon name="calendar-outline" class="calendar-icon"></ion-icon>
+        </div>
+      </div>
 
-      <!-- Fecha final calculada automáticamente -->
-      <ion-item>
-        <ion-label>Fin (Automático):</ion-label>
-        <ion-note>{{ endDate || 'Seleccione una fecha inicial' }}</ion-note>
-      </ion-item>
+      <div class="date-input-container">
+        <ion-label>Fecha Final</ion-label>
+        <div class="input-wrapper">
+          <input
+            type="date"
+            [(ngModel)]="endDate"
+            class="date-input"
+            placeholder="Seleccionar fecha"
+          />
+          <ion-icon name="calendar-outline" class="calendar-icon"></ion-icon>
+        </div>
+      </div>
     </div>
 
-    <ion-button expand="block" type="submit" class="generate-button" [disabled]="!startDate">Generar Reporte</ion-button>
-  </form>
+    <!-- Botones de Acción -->
+    <div class="action-buttons">
+      <ion-button
+        expand="block"
+        shape="round"
+        (click)="getAttendanceReport()"
+        [disabled]="isLoading"
+        class="generate-button"
+      >
+        <ion-spinner *ngIf="isLoading"></ion-spinner>
+        {{ isLoading ? 'Generando...' : 'Generar Reporte de Asistencia' }}
+      </ion-button>
 
-  <!-- Contenedor del reporte con scroll -->
-  <div class="report-container">
-    <ion-grid *ngIf="report.length > 0">
-      <ion-row>
-        <ion-col><strong>Empleado</strong></ion-col>
-        <ion-col *ngFor="let day of getDaysInRange(startDate, endDate)">
-          <strong>{{ day }}</strong>
-        </ion-col>
-        <ion-col><strong>Días Asistidos</strong></ion-col>
-        <ion-col><strong>Días No Asistidos</strong></ion-col>
-      </ion-row>
-      <ion-row *ngFor="let employee of report">
-        <ion-col>{{ employee.full_name }}</ion-col>
-        <ion-col *ngFor="let day of employee.dailyAttendance">
-          <div>Entrada: {{ day.entry_time }}</div>
-          <div>Salida: {{ day.exit_time }}</div>
-        </ion-col>
-        <ion-col>{{ employee.attendedDays }}</ion-col>
-        <ion-col>{{ employee.missedDays }}</ion-col>
-      </ion-row>
-    </ion-grid>
+      <ion-button
+        expand="block"
+        shape="round"
+        (click)="getHoursReport()"
+        [disabled]="isLoading"
+        class="generate-button"
+      >
+        <ion-spinner *ngIf="isLoading"></ion-spinner>
+        {{ isLoading ? 'Generando...' : 'Generar Reporte de Horarios' }}
+      </ion-button>
+
+      <ion-button
+        expand="block"
+        shape="round"
+        (click)="exportAttendanceToExcel()"
+        [disabled]="!attendanceReport.length"
+        class="export-button"
+      >
+        Exportar Asistencia a Excel
+      </ion-button>
+
+      <ion-button
+        expand="block"
+        shape="round"
+        (click)="exportHoursToExcel()"
+        [disabled]="!hoursReport.length"
+        class="export-button"
+      >
+        Exportar Horarios a Excel
+      </ion-button>
+    </div>
+
+    <!-- Tabla de Reporte de Asistencia -->
+    <div class="table-container" *ngIf="attendanceReport.length > 0">
+      <h2>Reporte de Asistencia</h2>
+      <table class="attendance-table">
+        <thead>
+          <tr>
+            <th>Empleado</th>
+            <th *ngFor="let day of getDaysInRange(startDate, endDate)">{{ day }}</th>
+            <th>Días Asistidos</th>
+            <th>Días No Asistidos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let employee of attendanceReport">
+            <td>{{ employee.full_name }}</td>
+            <td *ngFor="let day of employee.dailyAttendance">
+              <ion-icon
+                [name]="day.status === '✅' ? 'checkmark-circle' : 'close-circle'"
+                [class.green-check]="day.status === '✅'"
+                [class.red-cross]="day.status === '❌'"
+              ></ion-icon>
+            </td>
+            <td>{{ employee.attendedDays }}</td>
+            <td>{{ employee.missedDays }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tabla de Reporte de Horarios -->
+    <div class="table-container" *ngIf="hoursReport.length > 0">
+      <h2>Reporte de Horarios</h2>
+      <table class="attendance-table">
+        <thead>
+          <tr>
+            <th>Empleado</th>
+            <th *ngFor="let day of getDaysInRange(startDate, endDate)">{{ day }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let employee of hoursReport">
+            <td>{{ employee.full_name }}</td>
+            <td *ngFor="let day of employee.dailyAttendance">
+              <div>
+                Entrada: <strong>{{ day.first_entry }}</strong><br>
+                Salida: <strong>{{ day.last_exit }}</strong>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </ion-content>

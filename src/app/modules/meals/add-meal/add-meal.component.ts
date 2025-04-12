@@ -17,13 +17,6 @@ export class AddMealComponent {
   constructor(private mealsService: MealsService, private router: Router) {}
 
   addMeal() {
-    if (this.meal.name && this.meal.description && this.meal.date) {
-      this.mealsService.addMeal(this.meal).subscribe(() => {
-        alert('Menú agregado con éxito.');
-        this.router.navigate(['/meals']);
-      });
-    } else {
-      alert('Por favor, completa todos los campos.');
-    }
+
   }
 }

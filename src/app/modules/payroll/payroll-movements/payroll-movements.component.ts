@@ -33,21 +33,24 @@ export class PayrollMovementsComponent implements OnInit {
     });
   }
 
-  saveAdjustments(): void {
-    if (!this.adjustments.length) {
-      console.error('No hay ajustes para guardar');
-      return;
-    }
-
-    this.employeesService.saveAdjustments(this.employeeId, this.adjustments).subscribe({
-      next: () => {
-        console.log('Ajustes guardados exitosamente');
-      },
-      error: (error: any) => {
-        console.error('Error al guardar ajustes:', error);
-      },
-    });
+// In your saveAdjustments method in the component
+saveAdjustments(): void {
+  if (!this.adjustments.length) {  // Make sure this matches your property name
+    console.error('No hay ajustes para guardar');
+    return;
   }
+
+  this.employeesService.saveAdjustments(this.employeeId, this.adjustments).subscribe({
+    next: () => {
+      console.log('Ajustes guardados exitosamente');
+      // You might want to add user feedback here (toast, alert, etc.)
+    },
+    error: (error: any) => {
+      console.error('Error al guardar ajustes:', error);
+      // Add error handling for the user
+    },
+  });
+}
 
   goBack(): void {
     window.history.back(); // Navegar a la página anterior

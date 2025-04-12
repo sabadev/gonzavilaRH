@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { AlertController, ToastController, ModalController } from '@ionic/angular';
 import { AttendanceService } from 'src/app/services/attendance.service';
 import { AuthService } from 'src/app/services/auth.service';
 
@@ -14,114 +15,125 @@ interface AttendanceLog {
   styleUrls: ['./attendance-log.component.scss'],
 })
 export class AttendanceLogComponent implements OnInit {
+
+  isHelpModalOpen = false;
   employeeId: number | null = null;
   recentLogs: AttendanceLog[] = [];
   hasEntry = false;
   hasExit = false;
   loading = false;
-  message = '';
   photo: File | null = null;
+  photoPreviewUrl: string | null = null;
+  captureSupported = 'capture' in HTMLInputElement.prototype;
+  lastLogType: string | null = null;
+
 
   constructor(
     private attendanceService: AttendanceService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private toastController: ToastController,
+    private alertController: AlertController,
+    private modalController: ModalController
   ) {}
-
-  captureSupported: boolean = 'capture' in HTMLInputElement.prototype;
 
   ngOnInit(): void {
     this.loadEmployeeId();
-    if (this.employeeId) {
-      this.getRecentLogs();
-    } else {
-      console.error('No se pudo obtener el ID del empleado.');
-    }
+    this.checkCameraSupport();
+    this.loadRecentLogs(); // Cargar logs desde el servidor
   }
 
   private loadEmployeeId(): void {
     const storedEmployeeId = localStorage.getItem('employeeId');
-    if (storedEmployeeId) {
-      this.employeeId = parseInt(storedEmployeeId, 10);
-    } else {
-      console.error('No se encontró employeeId en el localStorage.');
+    this.employeeId = storedEmployeeId ? parseInt(storedEmployeeId, 10) : null;
+  }
+
+  private checkCameraSupport(): void {
+    if (!this.captureSupported) {
+      this.showToast('Advertencia: Tu dispositivo podría no soportar la captura directa de fotos', 'warning', 4000);
     }
   }
 
-  getRecentLogs(): void {
-    if (!this.employeeId) {
-      console.error('No se puede cargar logs sin un ID de empleado.');
-      return;
+  async loadRecentLogs(): Promise<void> {
+    if (!this.employeeId) return;
+
+    try {
+      const logs = await this.attendanceService.getRecentLogs(this.employeeId).toPromise();
+      this.recentLogs = logs || [];
+      this.checkTodaysLogs(); // Actualizar lastLogType y otros estados
+    } catch (error) {
+      this.showToast('Error al cargar registros recientes', 'danger');
     }
-
-    this.attendanceService.getRecentLogs(this.employeeId).subscribe({
-      next: (data: AttendanceLog[]) => {
-        this.recentLogs = data;
-
-        const today = new Date().toISOString().split('T')[0];
-        this.hasEntry = data.some(
-          (log) => log.log_type === 'entry' && log.log_time.startsWith(today)
-        );
-        this.hasExit = data.some(
-          (log) => log.log_type === 'exit' && log.log_time.startsWith(today)
-        );
-      },
-      error: (error) => {
-        console.error('Error al obtener logs recientes:', error);
-      },
-    });
   }
 
-  async compressImage(file: File): Promise<File> {
-    const img = new Image();
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
+  private checkTodaysLogs(): void {
+    const today = new Date().toISOString().split('T')[0];
 
+    // Verificar si hay una entrada hoy
+    this.hasEntry = this.recentLogs.some(
+      (log) => log.log_type === 'entry' && log.log_time.startsWith(today)
+    );
+
+    // Verificar si hay una salida hoy
+    this.hasExit = this.recentLogs.some(
+      (log) => log.log_type === 'exit' && log.log_time.startsWith(today)
+    );
+
+    // Obtener el último registro
+    const lastLog = this.recentLogs[0];
+    this.lastLogType = lastLog ? lastLog.log_type : null;
+  }
+
+  async capturePhoto(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+
+    this.loading = true;
+    const file = input.files[0];
+
+    try {
+      this.photo = await this.compressImage(file);
+      this.photoPreviewUrl = URL.createObjectURL(this.photo);
+    } catch (error) {
+      this.showToast('Error al procesar la imagen', 'danger');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  private async compressImage(file: File): Promise<File> {
     return new Promise((resolve, reject) => {
+      const img = new Image();
       const reader = new FileReader();
-      reader.onload = (event: any) => {
-        img.src = event.target.result;
+
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
         img.onload = () => {
-          const MAX_WIDTH = 800;
-          const scaleSize = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scaleSize;
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d')!;
+          const MAX_SIZE = 800;
+          const ratio = Math.min(MAX_SIZE / img.width, MAX_SIZE / img.height);
+
+          canvas.width = img.width * ratio;
+          canvas.height = img.height * ratio;
 
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
           canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
-                resolve(compressedFile);
-              } else {
-                reject(new Error('No se pudo comprimir la imagen.'));
-              }
-            },
+            (blob) => blob ? resolve(new File([blob], file.name, { type: 'image/jpeg' })) : reject(),
             'image/jpeg',
-            0.8 // Calidad de compresión
+            0.8
           );
         };
       };
-      reader.onerror = (error) => reject(error);
+
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   }
 
-  async capturePhoto(event: any): Promise<void> {
-    const file = event.target.files[0];
-    if (file) {
-      try {
-        this.photo = await this.compressImage(file);
-      } catch (error) {
-        console.error('Error al comprimir la foto:', error);
-      }
-    }
-  }
-
-  registerAttendanceWithPhoto(logType: string): void {
+  async registerAttendanceWithPhoto(logType: string): Promise<void> {
     if (!this.employeeId || !this.photo) {
-      console.error('Falta información para registrar asistencia.');
+      this.showToast('Debes tomar una foto primero', 'warning');
       return;
     }
 
@@ -131,27 +143,120 @@ export class AttendanceLogComponent implements OnInit {
     formData.append('log_type', logType);
     formData.append('photo', this.photo);
 
-    this.attendanceService.registerLogWithPhoto(formData).subscribe({
-      next: (response) => {
-        this.message = response.message;
-        this.loading = false;
-        this.getRecentLogs();
-      },
-      error: (error) => {
-        this.message = error.error?.error || 'Error al registrar asistencia.';
-        this.loading = false;
-      },
+    try {
+      await this.attendanceService.registerLogWithPhoto(formData).toPromise();
+      this.showToast(`Registro de ${logType} exitoso`, 'success');
+      this.photoPreviewUrl = null;
+
+      // Obtener logs actualizados desde el servidor
+      await this.loadRecentLogs();
+    } catch (error) {
+      const errorMessage = (error as any).error?.error || 'Error en el registro';
+      this.showToast(errorMessage, 'danger');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+
+  async logout(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Confirmar',
+      message: '¿Estás seguro de querer cerrar sesión?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Cerrar Sesión',
+          handler: async () => {
+            try {
+              // Cierra la sesión en el servidor (si es necesario)
+              await this.authService.logout();
+
+              // Borra todo el localStorage
+              localStorage.clear();
+
+              // Redirige al usuario a la página de inicio de sesión
+              this.router.navigate(['/login']);
+            } catch (error) {
+              console.error('Error al cerrar sesión:', error);
+              this.showToast('Error al cerrar sesión', 'danger');
+            }
+          }
+        }
+      ]
     });
+
+    await alert.present();
   }
 
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+
+  private async showToast(message: string, color: string = 'success', duration: number = 3000): Promise<void> {
+    const toast = await this.toastController.create({
+      message,
+      duration,
+      color,
+      position: 'top',
+      buttons: [{ icon: 'close', role: 'cancel' }]
+    });
+    toast.present();
   }
 
-  triggerPhotoInput(photoInput: HTMLInputElement): void {
-    photoInput.click();
+  async changePassword(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Cambiar Contraseña',
+      inputs: [
+        {
+          name: 'newPassword',
+          type: 'password',
+          placeholder: 'Nueva Contraseña',
+          attributes: {
+            required: true,
+            minlength: 6
+          }
+        },
+        {
+          name: 'confirmPassword',
+          type: 'password',
+          placeholder: 'Confirmar Nueva Contraseña',
+          attributes: {
+            required: true,
+            minlength: 6
+          }
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: 'Guardar',
+          handler: async (data) => {
+            if (data.newPassword !== data.confirmPassword) {
+              this.showToast('Las contraseñas no coinciden', 'warning');
+              return false;
+            }
+
+            try {
+              await this.authService.changePassword(
+                data.newPassword
+              ).toPromise();
+
+              this.showToast('Contraseña actualizada exitosamente', 'success');
+              return true;
+            } catch (error) {
+              const errorMessage = (error as Error).message || 'Error al cambiar contraseña';
+              this.showToast(errorMessage, 'danger');
+              return false;
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
   }
+
 
 
 }

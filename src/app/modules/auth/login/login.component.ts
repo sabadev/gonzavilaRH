@@ -1,90 +1,83 @@
 import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from 'src/app/services/auth.service';
 import { ToastController } from '@ionic/angular';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
+  styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {
-  username: string = '';
-  password: string = '';
+  loginForm: FormGroup;
   isLoading: boolean = false;
 
   constructor(
+    private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
     private toastController: ToastController
-  ) {}
-
-  onLogin(): void {
-    if (!this.username || this.username.trim().length < 3 || !this.password) {
-      this.presentToast('Usuario y contraseña son obligatorios y deben ser válidos', 'warning');
-      return;
-    }
-
-    this.isLoading = true;
-    console.log('Iniciando sesión con:', this.username, this.password);
-
-    this.authService.login(this.username, this.password).subscribe({
-      next: response => {
-        this.redirectUserBasedOnRole(); // Redirigir según el rol
-      },
-      error: err => {
-        console.error('Error en login:', err);
-        this.presentToast('Error en inicio de sesión', 'danger');
-        this.isLoading = false; // Asegúrate de detener el estado de carga
-      },
-      complete: () => {
-        console.log('Completado');
-        this.isLoading = false; // Detener el estado de carga al completar
-      },
+  ) {
+    this.loginForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      password: ['', [Validators.required, Validators.minLength(3)]],
     });
   }
 
-  private redirectUserBasedOnRole(): void {
-    console.log('Redirigiendo según el rol del usuario');
+  
 
-    const token = localStorage.getItem('token');
-    const employeeId = localStorage.getItem('employeeId');
-    if (!token) {
-      this.presentToast('Error al autenticar. Intente nuevamente.', 'danger');
-      return;
-    }
 
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const role = payload.role; // Supongamos que `role` está en el payload
 
-      if (!employeeId) {
-        console.warn('El employeeId no está almacenado en el localStorage.');
-        this.presentToast('Error: No se encontró el ID del empleado. Intente iniciar sesión nuevamente.', 'warning');
-        this.authService.logout(); // Limpia cualquier sesión previa
-        return;
-      }
+ 
 
-      if (role === 'admin') {
-        this.router.navigate(['/attendance']);
-      } else {
-        this.router.navigate(['/attendance']);
-      }
-    } catch (error) {
-      console.error('Error al procesar el token:', error);
-      this.presentToast('Error al procesar autenticación.', 'danger');
-    }
+async onLogin(): Promise<void> {
+  if (this.loginForm.invalid) {
+    this.presentToast('Por favor, completa el formulario correctamente.', 'warning');
+    return;
   }
 
+  this.isLoading = true;
+  const { username, password } = this.loginForm.value;
+
+  try {
+    const response = await this.authService.login(username, password).toPromise();
+    this.presentToast('Inicio de sesión exitoso', 'success'); // Mensaje de éxito
+    this.redirectUserBasedOnRole();
+  } catch (error) {
+    console.error('Error en login:', error);
+
+    // Verificar si el error es de tipo HttpErrorResponse
+    if (error instanceof HttpErrorResponse && error.error && error.error.error) {
+      this.presentToast(error.error.error, 'danger');
+    } else {
+      this.presentToast('Error en inicio de sesión. Inténtalo de nuevo.', 'danger');
+    }
+  } finally {
+    this.isLoading = false;
+  }
+}
+
+  private async redirectUserBasedOnRole(): Promise<void> {
+    const role = this.authService.getRoleFromToken();
+    if (role === 'admin') {
+      await this.router.navigate(['/attendance']);
+    } else if (role === 'employee') {
+      await this.router.navigate(['/attendance']);
+    } else {
+      await this.router.navigate(['/home']);
+    }
+    window.location.reload(); // Recargar la página para reiniciar el estado
+  }
 
   async presentToast(message: string, color: string = 'danger'): Promise<void> {
     const toast = await this.toastController.create({
       message,
       duration: 3000,
       color,
-      position: 'bottom'
+      position: 'bottom',
     });
-    toast.present();
+    await toast.present();
   }
 }
-

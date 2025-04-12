@@ -1,79 +1,148 @@
 import { Component } from '@angular/core';
 import { AttendanceService } from 'src/app/services/attendance.service';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-attendance-general-report',
   templateUrl: './attendance-general-report.component.html',
   styleUrls: ['./attendance-general-report.component.scss'],
+  standalone: false, // Define el componente como independientendalone: fals, // Define el componente como independientendalone: false, // Define el componente como independiente
 })
 export class AttendanceGeneralReportComponent {
-  startDate: string = '';
-  endDate: string = '';
-  report: any[] = [];
+  startDate: string | null = null;
+  endDate: string | null = null;
+  attendanceReport: any[] = [];
+  hoursReport: any[] = [];
+  isLoading = false;
 
   constructor(private attendanceService: AttendanceService) {}
 
-  // Obtener días dentro del rango
   getDaysInRange(startDate: string, endDate: string): string[] {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const days: string[] = [];
-
     while (start <= end) {
-      days.push(new Date(start).toISOString().split('T')[0]); // Formato YYYY-MM-DD
-      start.setDate(start.getDate() + 1); // Incrementar día
+      days.push(new Date(start).toISOString().split('T')[0]);
+      start.setDate(start.getDate() + 1);
     }
-
     return days;
   }
 
-  // Cambiar fecha de inicio y calcular fecha de fin
-  onStartDateChange(): void {
-    const selectedDate = new Date(this.startDate);
+  async getAttendanceReport() {
+    if (!this.validateDates()) return;
 
-    // Validar que la fecha de inicio sea un jueves
-    const dayOfWeek = selectedDate.getUTCDay();
-    if (dayOfWeek !== 4) {
-      alert('Por favor selecciona un día Jueves como fecha inicial.');
-      this.startDate = '';
-      this.endDate = '';
-      return;
+    this.isLoading = true;
+    try {
+      const data = await this.attendanceService
+        .getGeneralReport(this.startDate!, this.endDate!)
+        .toPromise();
+
+      const daysInRange = this.getDaysInRange(this.startDate!, this.endDate!);
+      this.attendanceReport = data.map((employee: any) => ({
+        ...employee,
+        dailyAttendance: daysInRange.map((day) => ({
+          date: day,
+          status: employee.dailyAttendance[day] || '❌',
+        })),
+      }));
+    } catch (error) {
+      console.error('Error:', error);
+      this.showErrorToast('Error al generar el reporte');
+    } finally {
+      this.isLoading = false;
     }
-
-    // Calcular fecha de fin automáticamente (miércoles siguiente)
-    const endDate = new Date(selectedDate);
-    endDate.setDate(endDate.getDate() + 6);
-    this.endDate = endDate.toISOString().split('T')[0];
   }
 
-  // Generar el reporte
-  getReport(): void {
+  private validateDates(): boolean {
     if (!this.startDate || !this.endDate) {
-      alert('Por favor selecciona una fecha inicial válida.');
-      return;
+      this.showErrorToast('Seleccione ambas fechas');
+      return false;
     }
 
-    this.attendanceService.getGeneralReport(this.startDate, this.endDate).subscribe({
+    const start = new Date(this.startDate);
+    const end = new Date(this.endDate);
+
+    if (start > end) {
+      this.showErrorToast('La fecha inicial no puede ser mayor a la final');
+      return false;
+    }
+
+    return true;
+  }
+
+  private showErrorToast(message: string) {
+    // Implementar lógica de toast aquí
+    console.warn('Error:', message);
+  }
+
+  getHoursReport(): void {
+    if (!this.startDate || !this.endDate) {
+      alert('Por favor selecciona una fecha válida.');
+      return;
+    }
+    this.attendanceService.getGeneralReportInOut(this.startDate, this.endDate).subscribe({
       next: (data) => {
-        const daysInRange = this.getDaysInRange(this.startDate, this.endDate);
-
-        this.report = data.map((employee: any) => {
-          const dailyAttendance = daysInRange.map((day) => {
-            const log = employee.dailyAttendance[day];
-            return log
-              ? { date: day, entry_time: log.entry_time || 'N/A', exit_time: log.exit_time || 'N/A' }
-              : { date: day, entry_time: 'No asistió', exit_time: 'No asistió' };
-          });
-
+        const daysInRange = this.getDaysInRange(this.startDate!, this.endDate!);
+        this.hoursReport = data.map((employee: any) => {
+          const dailyAttendance = daysInRange.map((day) => ({
+            date: day,
+            first_entry: employee.dailyAttendance[day]?.first_entry || 'N/A',
+            last_exit: employee.dailyAttendance[day]?.last_exit || 'N/A',
+          }));
           return {
             ...employee,
             dailyAttendance,
-            attendedDays: dailyAttendance.filter((d) => d.entry_time !== 'No asistió').length,
-            missedDays: dailyAttendance.filter((d) => d.entry_time === 'No asistió').length,
           };
         });
       },
-      error: (err) => console.error('Error al generar reporte:', err),
+      error: (err) => console.error('Error al generar reporte de horarios:', err),
     });
+  }
+
+  exportAttendanceToExcel(): void {
+    if (!this.startDate || !this.endDate) {
+      alert('Por favor selecciona una fecha válida.');
+      return;
+    }
+    const wsData: any[] = [];
+    const headers = ['Empleado', ...this.getDaysInRange(this.startDate, this.endDate), 'Días Asistidos', 'Días No Asistidos'];
+    wsData.push(headers);
+
+    this.attendanceReport.forEach((employee) => {
+      const row = [employee.full_name];
+      employee.dailyAttendance.forEach((day: { date: string; status: string }) => {
+        row.push(day.status);
+      });
+      row.push(employee.attendedDays, employee.missedDays);
+      wsData.push(row);
+    });
+
+    const ws: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(wsData);
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Asistencias');
+    XLSX.writeFile(wb, `Reporte_Asistencias_${this.startDate}_${this.endDate}.xlsx`);
+  }
+
+  exportHoursToExcel(): void {
+    if (!this.startDate || !this.endDate) {
+      alert('Por favor selecciona una fecha válida.');
+      return;
+    }
+    const wsData: any[] = [];
+    const headers = ['Empleado', ...this.getDaysInRange(this.startDate, this.endDate)];
+    wsData.push(headers);
+
+    this.hoursReport.forEach((employee) => {
+      const row = [employee.full_name];
+      employee.dailyAttendance.forEach((day: { date: string; first_entry: string; last_exit: string }) => {
+        row.push(`Entrada: ${day.first_entry} / Salida: ${day.last_exit}`);
+      });
+      wsData.push(row);
+    });
+
+    const ws: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(wsData);
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Horarios');
+    XLSX.writeFile(wb, `Reporte_Horarios_${this.startDate}_${this.endDate}.xlsx`);
   }
 }

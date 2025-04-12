@@ -1,33 +1,141 @@
-.date-container {
+.content-wrapper {
+  padding: 16px;
+}
+
+/* Selectores de Fecha */
+.date-selectors {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  .date-input-container {
+    flex: 1;
+
+    ion-label {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .date-input {
+        flex: 1;
+        padding: 12px;
+        padding-right: 40px; // Espacio para el ícono
+        border: 1px solid var(--ion-color-medium);
+        border-radius: 8px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+
+        &:focus {
+          border-color: var(--ion-color-primary);
+          outline: none;
+        }
+      }
+
+      .calendar-icon {
+        position: absolute;
+        right: 12px;
+        color: var(--ion-color-medium);
+        pointer-events: none; // Evita que el ícono bloquee el input
+      }
+    }
+  }
 }
 
-ion-item {
-  --inner-padding-top: 0;
-  --inner-padding-bottom: 0;
-  --padding-start: 0;
-  --padding-end: 0;
-  margin: 0;
-  flex: 1;
+/* Botones de Acción */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+
+  ion-button {
+    --padding-top: 18px;
+    --padding-bottom: 18px;
+    font-weight: 600;
+    font-size: 14px;
+
+    &.generate-button {
+      --background: var(--ion-color-primary);
+      --background-hover: var(--ion-color-primary-shade);
+    }
+
+    &.export-button {
+      --background: var(--ion-color-success);
+      --background-hover: var(--ion-color-success-shade);
+    }
+  }
 }
 
-.compact-datetime {
-  --min-height: 30px;
-  --height: 30px;
-  font-size: 14px;
+/* Tablas */
+.table-container {
+  margin-top: 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--ion-color-dark);
+    margin-bottom: 16px;
+  }
+
+  .attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--ion-color-light);
+    }
+
+    th {
+      background-color: var(--ion-color-primary);
+      color: white;
+      font-weight: bold;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .green-check {
+      color: var(--ion-color-success);
+    }
+
+    .red-cross {
+      color: var(--ion-color-danger);
+    }
+  }
 }
 
-.generate-button {
-  margin-top: 16px;
-}
-.report-container {
-  max-height: 70vh; /* Limita la altura máxima al 70% de la ventana */
-  overflow-y: auto; /* Habilita el scroll vertical */
-  margin-top: 20px; /* Separación superior del formulario */
-  border: 1px solid #ccc; /* Opcional: Añade un borde al contenedor */
-  padding: 10px; /* Espaciado interno */
-  background-color: #fff; /* Fondo blanco para contraste */
+/* Responsividad */
+@media (max-width: 768px) {
+  .date-selectors {
+    flex-direction: column;
+  }
+
+  .attendance-table {
+    font-size: 12px;
+
+    th,
+    td {
+      padding: 8px;
+    }
+  }
 }

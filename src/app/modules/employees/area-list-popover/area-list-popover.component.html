@@ -1,0 +1,41 @@
+<ion-list lines="none">
+  <ion-searchbar
+    placeholder="Buscar área..."
+    [(ngModel)]="searchTerm"
+    (ionInput)="searchAreas($event)"
+    animated
+    clear-icon="close-circle"
+    class="search-bar"
+  ></ion-searchbar>
+
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <span>Cargando áreas...</span>
+  </div>
+
+  <div class="error-state" *ngIf="errorLoading && !isLoading">
+    <ion-icon name="warning-outline"></ion-icon>
+    <span>Error al cargar áreas</span>
+    <ion-button fill="clear" (click)="loadAreas()">
+      Reintentar
+    </ion-button>
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && !errorLoading && filteredAreas.length === 0">
+    <ion-icon name="business-outline"></ion-icon>
+    <span>No se encontraron áreas</span>
+    <span *ngIf="searchTerm">para "{{searchTerm}}"</span>
+  </div>
+
+  <ion-item
+    *ngFor="let area of filteredAreas"
+    (click)="selectArea(area)"
+    button
+    detail
+    class="area-item"
+  >
+    <ion-label>
+      <h3>{{ area.name }}</h3>
+    </ion-label>
+  </ion-item>
+</ion-list>

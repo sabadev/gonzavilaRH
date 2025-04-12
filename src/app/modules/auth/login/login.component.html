@@ -1,31 +1,42 @@
-
 <ion-content class="ion-padding">
-  <form (ngSubmit)="onLogin()">
-    <ion-item>
-      <ion-label position="floating">Usuario</ion-label>
-      <ion-input
-        type="text"
-        [(ngModel)]="username"
-        name="username"
-        required
-      ></ion-input>
-    </ion-item>
+  <div class="login-container">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Iniciar Sesión</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+          <ion-item>
+            <ion-icon name="person" slot="start"></ion-icon>
+            <ion-label position="floating">Usuario</ion-label>
+            <ion-input
+              type="text"
+              formControlName="username"
+              required
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-icon name="lock-closed" slot="start"></ion-icon>
+            <ion-label position="floating">Contraseña</ion-label>
+            <ion-input
+              type="password"
+              formControlName="password"
+              required
+            ></ion-input>
+          </ion-item>
 
-    <ion-item>
-      <ion-label position="floating">Contraseña</ion-label>
-      <ion-input
-        type="password"
-        [(ngModel)]="password"
-        name="password"
-        required
-      ></ion-input>
-    </ion-item>
+          <div class="ion-margin-top">
+            <ion-button expand="block" type="submit" [disabled]="isLoading || loginForm.invalid">
+              <ion-spinner *ngIf="isLoading" slot="start"></ion-spinner>
+              Iniciar Sesión
+            </ion-button>
+          </div>
 
-    <div class="ion-margin-top">
-      <ion-button expand="block" type="submit" [disabled]="isLoading">
-        <ion-spinner *ngIf="isLoading" slot="start"></ion-spinner>
-        Iniciar Sesión
-      </ion-button>
-    </div>
-  </form>
+          <div class="ion-text-center ion-margin-top">
+            <a href="/forgot-password">¿Olvidaste tu contraseña?</a>
+          </div>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </div>
 </ion-content>
